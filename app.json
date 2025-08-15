@@ -33,6 +33,14 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos to save vouchers.",
+          "savePhotosPermission": "Allow $(PRODUCT_NAME) to save vouchers to your photo gallery.",
+          "isAccessMediaLocationEnabled": true
+        }
       ]
     ],
     "experiments": {

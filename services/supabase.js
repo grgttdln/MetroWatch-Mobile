@@ -712,3 +712,121 @@ const formatTimeAgo = (date, time) => {
     return time.substring(0, 5) // Return HH:MM format as fallback
   }
 }
+
+
+// Fetch fresh user data by ID
+export const fetchUserById = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single()
+
+    if (error) {
+      console.error('Error fetching user by ID:', error)
+      return { success: false, error: error.message }
+    }
+
+    console.log('User data fetched successfully:', data.email)
+    return { success: true, user: data }
+  } catch (error) {
+    console.error('Error in fetchUserById:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Update user points (for redemptions)
+export const updateUserPoints = async (userId, newPoints) => {
+  try {
+    console.log('Updating user points for userId:', userId, 'New points:', newPoints)
+    
+    // First, check if user exists
+    const { data: existingUser, error: checkError } = await supabase
+      .from('users')
+      .select('id, email, points')
+      .eq('id', userId)
+      .single()
+
+    if (checkError || !existingUser) {
+      console.error('User not found:', checkError)
+      return { success: false, error: 'User not found' }
+    }
+
+    console.log('Found user:', existingUser.email, 'Current points:', existingUser.points)
+
+    // Try updating with RPC function first (bypasses RLS if function has proper security definer)
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('update_user_points', {
+        user_id: userId,
+        new_points: newPoints
+      })
+
+      if (!rpcError && rpcData) {
+        console.log('Points updated via RPC successfully')
+        
+        // Fetch updated user data
+        const { data: updatedUser } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single()
+
+        if (updatedUser) {
+          // Update current user in memory
+          if (currentUser && currentUser.id === userId) {
+            currentUser.points = newPoints
+            currentUser.updated_at = updatedUser.updated_at
+            await AsyncStorage.setItem('currentUser', JSON.stringify(currentUser))
+          }
+          
+          return { success: true, user: updatedUser }
+        }
+      }
+    } catch (rpcError) {
+      console.log('RPC function not available, trying direct update')
+    }
+
+    // Fallback to direct update
+    const { data, error, count } = await supabase
+      .from('users')
+      .update({ points: newPoints, updated_at: new Date().toISOString() })
+      .eq('id', userId)
+      .select('*')
+
+    console.log('Update query result:', { data, error, count, rowsAffected: data?.length })
+
+    if (error) {
+      console.error('Error updating user points:', error)
+      return { success: false, error: error.message }
+    }
+
+    if (!data || data.length === 0) {
+      console.error('No rows updated - likely RLS policy issue')
+      
+      // Try to check current RLS policies
+      console.log('This might be a Row Level Security (RLS) issue.')
+      console.log('Please check your Supabase RLS policies for the users table.')
+      
+      return { 
+        success: false, 
+        error: 'Unable to update user points. This might be due to database security policies. Please check your Supabase RLS settings.' 
+      }
+    }
+
+    const updatedUser = data[0]
+    console.log('User points updated successfully:', updatedUser.email, 'New points:', updatedUser.points)
+    
+    // Update current user in memory
+    if (currentUser && currentUser.id === userId) {
+      currentUser.points = newPoints
+      currentUser.updated_at = updatedUser.updated_at
+      await AsyncStorage.setItem('currentUser', JSON.stringify(currentUser))
+    }
+    
+    return { success: true, user: updatedUser }
+  } catch (error) {
+    console.error('Error in updateUserPoints:', error)
+    return { success: false, error: error.message }
+  }
+}
