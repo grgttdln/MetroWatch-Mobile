@@ -22,7 +22,7 @@ import {
 
 SplashScreen.preventAutoHideAsync();
 
-const LoginScreen = () => {
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -99,7 +99,7 @@ const LoginScreen = () => {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   registerLinkContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 16,
+    marginTop: 2,
     marginBottom: 40,
   },
   registerText: {
@@ -195,5 +195,3 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 });
-
-export default LoginScreen;
