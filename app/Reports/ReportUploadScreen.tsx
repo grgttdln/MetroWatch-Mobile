@@ -179,10 +179,17 @@ const styles = StyleSheet.create({
     marginTop: "auto",
     marginBottom: 20,
   },
+  continueButtonDisabled: {
+    backgroundColor: "#CCCCCC",
+    opacity: 0.6,
+  },
   continueButtonText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 18,
     color: "#FFFFFF",
+  },
+  continueButtonTextDisabled: {
+    color: "#888888",
   },
 });
 
@@ -437,13 +444,24 @@ export default function ReportUploadScreen() {
         ))}
 
         <TouchableOpacity 
-          style={styles.continueButton} 
-          onPress={() => router.push({
-            pathname: "/Reports/ReportDetailsScreen",
-            params: { images: JSON.stringify(selectedImages) }
-          })}
+          style={[
+            styles.continueButton, 
+            selectedImages.length === 0 && styles.continueButtonDisabled
+          ]} 
+          onPress={() => {
+            if (selectedImages.length > 0) {
+              router.push({
+                pathname: "/Reports/ReportDetailsScreen",
+                params: { images: JSON.stringify(selectedImages) }
+              })
+            }
+          }}
+          disabled={selectedImages.length === 0}
         >
-          <Text style={styles.continueButtonText}>Continue</Text>
+          <Text style={[
+            styles.continueButtonText,
+            selectedImages.length === 0 && styles.continueButtonTextDisabled
+          ]}>Continue</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

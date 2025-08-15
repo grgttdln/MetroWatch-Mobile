@@ -258,6 +258,12 @@ export const createReport = async (reportData) => {
   const user = await getCurrentUser()
   console.log('Current user for report:', user)
   
+  // Validate required fields according to new schema
+  if (!reportData.url || reportData.url.trim() === '') {
+    console.error('URL is required - no images provided')
+    return { success: false, error: 'At least one image is required' }
+  }
+  
   const reportDataWithUser = {
     ...reportData,
     user_id: user?.id || null
@@ -273,13 +279,144 @@ export const createReport = async (reportData) => {
     
     if (error) {
       console.error('Report creation error:', error)
+      
+      // Handle unique constraint violation for duplicate URLs
+      if (error.code === '23505' && error.message.includes('unique_reports_url')) {
+        return { 
+          success: false, 
+          error: 'This image has already been uploaded in another report. Please use different images.' 
+        }
+      }
+      
+      // Handle other constraint violations
+      if (error.code === '23502' && error.message.includes('url')) {
+        return { 
+          success: false, 
+          error: 'At least one image is required to create a report.' 
+        }
+      }
+      
       return { success: false, error: error.message }
     }
     
-    console.log('Report created successfully:', data[0])
+    console.log('Report created successfully with report_id:', data[0].report_id)
     return { success: true, report: data[0] }
   } catch (error) {
     console.error('Report creation error:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Get reports by user
+export const getUserReports = async (userId = null) => {
+  console.log('Getting user reports...')
+  
+  try {
+    let query = supabase
+      .from('reports')
+      .select('*')
+      .order('report_id', { ascending: false }) // Order by newest first using report_id
+    
+    if (userId) {
+      query = query.eq('user_id', userId)
+    } else {
+      // If no specific user, get current user's reports
+      const user = await getCurrentUser()
+      if (user) {
+        query = query.eq('user_id', user.id)
+      }
+    }
+    
+    const { data, error } = await query
+    
+    if (error) {
+      console.error('Error fetching reports:', error)
+      return { success: false, error: error.message }
+    }
+    
+    console.log('Reports fetched successfully:', data?.length || 0, 'reports')
+    return { success: true, reports: data || [] }
+  } catch (error) {
+    console.error('Error in getUserReports:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Get a specific report by report_id
+export const getReportById = async (reportId) => {
+  console.log('Getting report by ID:', reportId)
+  
+  try {
+    const { data, error } = await supabase
+      .from('reports')
+      .select('*')
+      .eq('report_id', reportId) // Using the new report_id primary key
+      .single()
+    
+    if (error) {
+      console.error('Error fetching report:', error)
+      return { success: false, error: error.message }
+    }
+    
+    console.log('Report fetched successfully:', data)
+    return { success: true, report: data }
+  } catch (error) {
+    console.error('Error in getReportById:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Check if URL already exists (useful for preventing duplicates)
+export const checkUrlExists = async (url) => {
+  console.log('Checking if URL exists:', url)
+  
+  try {
+    const { data, error } = await supabase
+      .from('reports')
+      .select('report_id, user_id')
+      .eq('url', url)
+      .single()
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error('Error checking URL:', error)
+      return { success: false, error: error.message }
+    }
+    
+    const exists = !!data
+    console.log('URL exists:', exists)
+    return { success: true, exists, reportData: data }
+  } catch (error) {
+    console.error('Error in checkUrlExists:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Get all reports with pagination (useful for admin/public views)
+export const getAllReports = async (limit = 50, offset = 0) => {
+  console.log('Getting all reports with pagination...')
+  
+  try {
+    const { data, error } = await supabase
+      .from('reports')
+      .select(`
+        *,
+        users!fk_reports_user (
+          name,
+          email
+        )
+      `)
+      .order('report_id', { ascending: false })
+      .range(offset, offset + limit - 1)
+    
+    if (error) {
+      console.error('Error fetching all reports:', error)
+      return { success: false, error: error.message }
+    }
+    
+    console.log('All reports fetched successfully:', data?.length || 0, 'reports')
+    return { success: true, reports: data || [] }
+  } catch (error) {
+    console.error('Error in getAllReports:', error)
     return { success: false, error: error.message }
   }
 }

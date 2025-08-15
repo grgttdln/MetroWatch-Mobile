@@ -382,11 +382,20 @@ export default function ReportDetailsScreen() {
     console.log('🚀 Starting report submission...');
     console.log('📋 Form validation...');
     
+    // Validate required fields
     if (!date || !time || !location || !category || !description) {
       console.log('❌ Validation failed - missing fields');
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
+    
+    // Validate required images (URL field is NOT NULL in new schema)
+    if (!selectedImages || selectedImages.length === 0) {
+      console.log('❌ Validation failed - no images selected');
+      Alert.alert('Error', 'At least one image is required to create a report');
+      return;
+    }
+    
     console.log('✅ Form validation passed');
 
     setIsSubmitting(true);
