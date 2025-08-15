@@ -1,32 +1,36 @@
 import {
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  useFonts,
 } from "@expo-google-fonts/inter";
+import { router, useLocalSearchParams } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import Header from "../../components/Header";
-  
-  SplashScreen.preventAutoHideAsync();
-  
+import { createReport, uploadImage } from "../../services/supabase";
+
+SplashScreen.preventAutoHideAsync();
+
   interface SelectedImage {
     uri: string;
     name: string;
     type: string;
+    latitude?: number;
+    longitude?: number;
   }
   
   const styles = StyleSheet.create({
@@ -141,6 +145,10 @@ import Header from "../../components/Header";
   });
   
   export default function ReportDetailsScreen() {
+  const params = useLocalSearchParams();
+  const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Date and time state
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
@@ -159,6 +167,24 @@ import Header from "../../components/Header";
   const [categoryOptions, setCategoryOptions] = useState(["Garbage", "Traffic", "Flooding", "Vandalism", "Others"]);
   
   const [description, setDescription] = useState("");
+
+  const [fontsLoaded] = useFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+  });
+
+  useEffect(() => {
+    // Parse the images from params
+    if (params.images) {
+      try {
+        const images = JSON.parse(params.images as string);
+        setSelectedImages(images);
+      } catch (error) {
+        console.error('Error parsing images:', error);
+      }
+    }
+  }, [params.images]);
   
   // Handle date selection
   const handleConfirmDate = (date: Date) => {
@@ -188,24 +214,123 @@ import Header from "../../components/Header";
     setTime(formattedTime);
   };
 
-  const [fontsLoaded] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-  });
-
   if (!fontsLoaded) {
     return null;
   }
 
-  const handleSendReport = () => {
-    console.log("Report sent:", { date, time, location, category, description });
-    // Navigate to next screen or show confirmation
+  const handleSendReport = async () => {
+    console.log('🚀 Starting report submission...');
+    console.log('📋 Form validation...');
+    
+    if (!date || !time || !location || !category || !description) {
+      console.log('❌ Validation failed - missing fields');
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+    console.log('✅ Form validation passed');
+
+    setIsSubmitting(true);
+    console.log('📤 Setting submission state to true');
+    
+    try {
+      console.log('📷 Starting image upload process...');
+      console.log('🖼️ Number of images to upload:', selectedImages.length);
+      
+      // Upload images first
+      const imageUrls = [];
+      for (let i = 0; i < selectedImages.length; i++) {
+        const image = selectedImages[i];
+        console.log(`📸 Uploading image ${i + 1}/${selectedImages.length}:`, image.name);
+        console.log('📍 Image location data:', { 
+          latitude: image.latitude, 
+          longitude: image.longitude 
+        });
+        
+        const uploadResult = await uploadImage(image.uri, image.name);
+        if (uploadResult.success) {
+          console.log(`✅ Image ${i + 1} uploaded successfully:`, uploadResult.url);
+          imageUrls.push(uploadResult.url);
+        } else {
+          console.error(`❌ Failed to upload image ${i + 1}:`, uploadResult.error);
+          Alert.alert('Error', `Failed to upload image: ${uploadResult.error}`);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      console.log('📷 All images uploaded successfully!');
+      console.log('🔗 Image URLs:', imageUrls);
+
+      // Get location data from the first image (if available)
+      const firstImage = selectedImages[0];
+      let geotag = null;
+      
+      if (firstImage?.latitude && firstImage?.longitude) {
+        // Format as geotag: "lat,lng" 
+        geotag = `${firstImage.latitude},${firstImage.longitude}`;
+        console.log('📍 Geotag created:', geotag);
+      } else {
+        console.log('📍 No location data available');
+      }
+
+      console.log('📊 Creating report data object...');
+      // Create report data
+      const reportData = {
+        date: selectedDate ? selectedDate.toISOString().split('T')[0] : null,
+        time: selectedTime ? selectedTime.toTimeString().split(' ')[0] : null,
+        location,
+        category,
+        description,
+        url: imageUrls.join(','), // Store multiple URLs as comma-separated string
+        latitude: firstImage?.latitude?.toString() || null,
+        longitude: firstImage?.longitude?.toString() || null
+      };
+      
+      console.log('📋 Final report data to submit:', JSON.stringify(reportData, null, 2));
+
+      console.log('💾 Submitting report to database...');
+      // Submit report to database
+      const result = await createReport(reportData);
+      
+      if (result.success) {
+        console.log('🎉 Report submission successful!');
+        console.log('📄 Submitted report:', result.report);
+        
+        // Reset form data
+        setSelectedImages([]);
+        setSelectedDate(null);
+        setSelectedTime(null);
+        setDate("");
+        setTime("");
+        setLocation("");
+        setCategory("");
+        setDescription("");
+        
+        Alert.alert('Success', 'Report submitted successfully!', [
+          { text: 'OK', onPress: () => {
+            console.log("Report sent:", reportData);
+            // Navigate back to dashboard/social layer
+            router.push("/Dashboard/SocialLayerScreen");
+          }}
+        ]);
+      } else {
+        console.error('❌ Report submission failed:', result.error);
+        Alert.alert('Error', `Failed to submit report: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('💥 Unexpected error in handleSendReport:', error);
+      if (error instanceof Error) {
+        console.error('Error stack:', error.stack);
+      }
+      Alert.alert('Error', `An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      console.log('🔄 Resetting submission state...');
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title="Report Details" />
+      <Header />
       
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -269,21 +394,18 @@ import Header from "../../components/Header";
             
             {showLocationDropdown && (
               <View style={styles.dropdownList}>
-                <FlatList
-                  data={locationOptions}
-                  keyExtractor={(item) => item}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={styles.dropdownItem}
-                      onPress={() => {
-                        setLocation(item);
-                        setShowLocationDropdown(false);
-                      }}
-                    >
-                      <Text style={styles.dropdownItemText}>{item}</Text>
-                    </TouchableOpacity>
-                  )}
-                />
+                {locationOptions.map((item) => (
+                  <TouchableOpacity
+                    key={item}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setLocation(item);
+                      setShowLocationDropdown(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownItemText}>{item}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             )}
           </View>
@@ -303,21 +425,18 @@ import Header from "../../components/Header";
             
             {showCategoryDropdown && (
               <View style={styles.dropdownList}>
-                <FlatList
-                  data={categoryOptions}
-                  keyExtractor={(item) => item}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={styles.dropdownItem}
-                      onPress={() => {
-                        setCategory(item);
-                        setShowCategoryDropdown(false);
-                      }}
-                    >
-                      <Text style={styles.dropdownItemText}>{item}</Text>
-                    </TouchableOpacity>
-                  )}
-                />
+                {categoryOptions.map((item) => (
+                  <TouchableOpacity
+                    key={item}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setCategory(item);
+                      setShowCategoryDropdown(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownItemText}>{item}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
             )}
           </View>
@@ -340,10 +459,13 @@ import Header from "../../components/Header";
         </View>
 
         <TouchableOpacity 
-          style={styles.sendButton}
+          style={[styles.sendButton, isSubmitting && { opacity: 0.6 }]}
           onPress={handleSendReport}
+          disabled={isSubmitting}
         >
-          <Text style={styles.sendButtonText}>Send Report</Text>
+          <Text style={styles.sendButtonText}>
+            {isSubmitting ? 'Submitting...' : 'Send Report'}
+          </Text>
         </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

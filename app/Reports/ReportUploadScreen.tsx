@@ -1,23 +1,24 @@
 import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  useFonts,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    useFonts,
 } from "@expo-google-fonts/inter";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import {
-  ActionSheetIOS,
-  Alert,
-  Image,
-  Platform,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActionSheetIOS,
+    Alert,
+    Image,
+    Platform,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import Header from "../../components/Header";
 
@@ -27,6 +28,17 @@ interface SelectedImage {
   uri: string;
   name: string;
   type: string;
+  latitude?: number;
+  longitude?: number;
+  geotag?: {
+    latitude: number;
+    longitude: number;
+    accuracy: number | null;
+    altitude: number | null;
+    timestamp: string;
+    address?: string | null;
+  };
+  exif?: any;
 }
 
 const styles = StyleSheet.create({
@@ -185,6 +197,7 @@ const styles = StyleSheet.create({
 
 export default function ReportUploadScreen() {
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
+  const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null);
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -198,6 +211,39 @@ export default function ReportUploadScreen() {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [fontsLoaded]);
+
+  useEffect(() => {
+    // Request location permission on component mount
+    requestLocationPermission();
+  }, []);
+
+  const requestLocationPermission = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({});
+        setCurrentLocation(location);
+      } else {
+        Alert.alert('Location Permission', 'Location permission is required to capture GPS coordinates with photos.');
+      }
+    } catch (error) {
+      console.error('Error requesting location permission:', error);
+    }
+  };
+
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({});
+        return location;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting current location:', error);
+      return null;
+    }
+  };
 
   if (!fontsLoaded) {
     return null;
@@ -274,9 +320,22 @@ export default function ReportUploadScreen() {
       Alert.alert("Permission required", "Please allow camera access.");
       return;
     }
+
+    // Get current location with high accuracy for geotagging
+    const location = await getCurrentLocation();
+    if (!location) {
+      Alert.alert(
+        "Location Required", 
+        "GPS location is required for geotagging. Please enable location services and try again."
+      );
+      return;
+    }
+
     const result = await ImagePicker.launchCameraAsync({
       aspect: [4, 3],
       quality: 1,
+      exif: true, // Include EXIF data
+      base64: false,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -285,14 +344,36 @@ export default function ReportUploadScreen() {
       let name =
         (asset as any).fileName ||
         uriParts[uriParts.length - 1] ||
-        `photo-${Date.now()}.jpg`;
+        `geotag-${Date.now()}.jpg`;
       const ext = name && name.includes(".") ? name.split(".").pop() : "jpg";
+      
+      // Create geotag data
+      const geotagData = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        accuracy: location.coords.accuracy,
+        altitude: location.coords.altitude,
+        timestamp: new Date().toISOString(),
+        address: null // Will be reverse geocoded if needed
+      };
+
       const image = {
         uri: asset.uri,
         name,
         type: `image/${ext}`,
+        latitude: geotagData.latitude,
+        longitude: geotagData.longitude,
+        geotag: geotagData,
+        exif: asset.exif || null
       } as SelectedImage;
+      
       setSelectedImages([...selectedImages, image].slice(0, 3));
+      
+      console.log('Photo captured with geotag:', {
+        location: `${geotagData.latitude}, ${geotagData.longitude}`,
+        accuracy: `${geotagData.accuracy}m`,
+        timestamp: geotagData.timestamp
+      });
     }
   };
 
@@ -388,7 +469,13 @@ export default function ReportUploadScreen() {
           </View>
         ))}
 
-        <TouchableOpacity style={styles.continueButton} onPress={() => router.push("/Reports/ReportDetailsScreen")}>
+        <TouchableOpacity 
+          style={styles.continueButton} 
+          onPress={() => router.push({
+            pathname: "/Reports/ReportDetailsScreen",
+            params: { images: JSON.stringify(selectedImages) }
+          })}
+        >
           <Text style={styles.continueButtonText}>Continue</Text>
         </TouchableOpacity>
       </View>
