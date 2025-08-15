@@ -1,6 +1,5 @@
-import { router } from "expo-router";
 import React from "react";
-import { Button, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 import Header from "../../components/Header";
 import AppTabs from "../../navigation/AppTabs";
 
@@ -12,12 +11,6 @@ export default function SocialLayerScreen() {
         <View style={styles.content}>
           <View style={styles.titleWrapper}>
             <Text style={styles.title}>Community Feed</Text>
-          </View>
-          <View style={styles.buttonContainer}>
-            <Button
-              title="Go to Upload"
-              onPress={() => router.push("/Reports/ReportUploadScreen")}
-            />
           </View>
         </View>
         <AppTabs />
@@ -44,12 +37,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 24,
-    color: "#000000",
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#1A237E",
     textAlign: "center",
-  },
-  buttonContainer: {
-    marginTop: 25,
   },
 });

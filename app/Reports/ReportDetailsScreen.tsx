@@ -25,15 +25,15 @@ import { createReport, uploadImage } from "../../services/supabase";
 
 SplashScreen.preventAutoHideAsync();
 
-  interface SelectedImage {
-    uri: string;
-    name: string;
-    type: string;
-    latitude?: number;
-    longitude?: number;
-  }
-  
-  const styles = StyleSheet.create({
+interface SelectedImage {
+  uri: string;
+  name: string;
+  type: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
@@ -73,22 +73,45 @@ SplashScreen.preventAutoHideAsync();
   },
   inputText: {
     color: "#000000",
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Inter_500Medium",
   },
   placeholderText: {
     color: "#AAAAAA",
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Inter_500Medium",
   },
   dropdownContainer: {
     position: "relative",
     justifyContent: "center",
   },
+  dropdownButton: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 16,
+    height: 56,
+    borderWidth: 1,
+    borderColor: "#CCCCCC",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    justifyContent: "center",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dropdownButtonText: {
+    flex: 1,
+    fontFamily: "Inter_500Medium",
+    fontSize: 16,
+    color: "#000000",
+  },
+  dropdownButtonPlaceholder: {
+    flex: 1,
+    fontFamily: "Inter_500Medium",
+    fontSize: 16,
+    color: "#AAAAAA",
+  },
   dropdownIcon: {
-    position: "absolute",
-    right: 16,
-    top: 16,
     fontSize: 16,
     color: "#666666",
+    marginLeft: 8,
   },
   dropdownList: {
     position: "absolute",
@@ -97,34 +120,97 @@ SplashScreen.preventAutoHideAsync();
     right: 0,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#CCCCCC",
-    borderRadius: 8,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
     zIndex: 1000,
-    maxHeight: 200,
-    elevation: 5,
+    elevation: 8,
     shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    overflow: "hidden",
   },
   dropdownItem: {
-    padding: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#EEEEEE",
+    borderBottomColor: "#F5F5F5",
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 60,
+  },
+  dropdownItemLast: {
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderBottomWidth: 0,
+    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 60,
+  },
+  dropdownItemSelected: {
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F5F5F5",
+    backgroundColor: "#F8F9FF",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 60,
+  },
+  dropdownItemSelectedLast: {
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderBottomWidth: 0,
+    backgroundColor: "#F8F9FF",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: 60,
   },
   dropdownItemText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Inter_500Medium",
     fontSize: 16,
-    color: "#333333",
+    color: "#2C2C2C",
+    flex: 1,
+  },
+  dropdownItemTextSelected: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 16,
+    color: "#1A237E",
+    flex: 1,
+  },
+  dropdownItemIcon: {
+    marginLeft: 12,
+    fontSize: 18,
+    color: "#1A237E",
+  },
+  dropdownItemPrefix: {
+    marginRight: 12,
+    fontSize: 16,
+    color: "#666666",
+    minWidth: 20,
+    textAlign: "center",
+  },
+  dropdownItemPrefixSelected: {
+    marginRight: 12,
+    fontSize: 16,
+    color: "#1A237E",
+    minWidth: 20,
+    textAlign: "center",
   },
   textArea: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "Inter_500Medium",
     fontSize: 16,
     height: 150,
     borderWidth: 1,
     borderColor: "#CCCCCC",
     borderRadius: 8,
-    padding: 16,
+    padding: 14,
     color: "#333333",
     textAlignVertical: "top",
   },
@@ -142,9 +228,45 @@ SplashScreen.preventAutoHideAsync();
     fontSize: 18,
     color: "#FFFFFF",
   },
-  });
-  
-  export default function ReportDetailsScreen() {
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 16,
+    marginBottom: 8,
+    position: "relative",
+    paddingHorizontal: 16,
+  },
+  leftSection: {
+    width: 40,
+    zIndex: 1,
+  },
+  rightSection: {
+    width: 40,
+  },
+  titleWrapper: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backButton: {
+    padding: 8,
+  },
+  backButtonText: {
+    fontSize: 20,
+    color: "#1A237E",
+  },
+  title: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 24,
+    color: "#000000",
+    textAlign: "center",
+  },
+});
+
+export default function ReportDetailsScreen() {
   const params = useLocalSearchParams();
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -154,18 +276,36 @@ SplashScreen.preventAutoHideAsync();
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  
+
   // Form field values
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
-  const [locationOptions, setLocationOptions] = useState(["Manila", "Laguna", "Cavite", "Quezon City", "Makati"]);
-  
+  const [locationOptions, setLocationOptions] = useState([
+    "Manila",
+    "Laguna", 
+    "Cavite",
+    "Quezon City",
+    "Makati"
+  ]);
+
   const [category, setCategory] = useState("");
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-  const [categoryOptions, setCategoryOptions] = useState(["Garbage", "Traffic", "Flooding", "Vandalism", "Others"]);
-  
+  const [categoryOptions, setCategoryOptions] = useState([
+      "Garbage",
+      "Traffic",
+      "Flooding",
+      "Vandalism",
+      "Noise Pollution",
+      "Road Damage",
+      "Illegal Parking",
+      "Street Lighting",
+      "Stray Animals",
+      "Others",
+    ]);
+
+
   const [description, setDescription] = useState("");
 
   const [fontsLoaded] = useFonts({
@@ -185,38 +325,58 @@ SplashScreen.preventAutoHideAsync();
       }
     }
   }, [params.images]);
-  
-  // Handle date selection
-  const handleConfirmDate = (date: Date) => {
-    setShowDatePicker(false);
-    setSelectedDate(date);
-    
-    // Format date to display
-    const formattedDate = date.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-    setDate(formattedDate);
-  };
-  
-  // Handle time selection
-  const handleConfirmTime = (time: Date) => {
-    setShowTimePicker(false);
-    setSelectedTime(time);
-    
-    // Format time to display
-    const formattedTime = time.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true
-    });
-    setTime(formattedTime);
-  };
 
   if (!fontsLoaded) {
     return null;
   }
+
+
+  // Helper function to get category icons
+  const getCategoryIcon = (category: string) => {
+    const iconMap: { [key: string]: string } = {
+      Garbage: "🗑️",
+      Traffic: "🚦",
+      Flooding: "🌊",
+      Vandalism: "⚠️",
+      "Noise Pollution": "🔊",
+      "Road Damage": "🕳️",
+      "Illegal Parking": "🚗",
+      "Street Lighting": "💡",
+      "Stray Animals": "🐶",
+      Others: "📋",
+    };
+    return iconMap[category] || "📋";
+  };
+
+  const getLocationIcon = (location: string) => {
+    return "📍";
+  };
+
+  // Handle date selection
+  const handleConfirmDate = (date: Date) => {
+    setShowDatePicker(false);
+    setSelectedDate(date);
+
+    const formattedDate = date.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric", 
+      year: "numeric",
+    });
+    setDate(formattedDate);
+  };
+
+  // Handle time selection
+  const handleConfirmTime = (time: Date) => {
+    setShowTimePicker(false);
+    setSelectedTime(time);
+
+    const formattedTime = time.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+    });
+    setTime(formattedTime);
+  };
 
   const handleSendReport = async () => {
     console.log('🚀 Starting report submission...');
@@ -265,7 +425,6 @@ SplashScreen.preventAutoHideAsync();
       let geotag = null;
       
       if (firstImage?.latitude && firstImage?.longitude) {
-        // Format as geotag: "lat,lng" 
         geotag = `${firstImage.latitude},${firstImage.longitude}`;
         console.log('📍 Geotag created:', geotag);
       } else {
@@ -280,7 +439,7 @@ SplashScreen.preventAutoHideAsync();
         location,
         category,
         description,
-        url: imageUrls.join(','), // Store multiple URLs as comma-separated string
+        url: imageUrls.join(','),
         latitude: firstImage?.latitude?.toString() || null,
         longitude: firstImage?.longitude?.toString() || null
       };
@@ -288,7 +447,6 @@ SplashScreen.preventAutoHideAsync();
       console.log('📋 Final report data to submit:', JSON.stringify(reportData, null, 2));
 
       console.log('💾 Submitting report to database...');
-      // Submit report to database
       const result = await createReport(reportData);
       
       if (result.success) {
@@ -308,7 +466,6 @@ SplashScreen.preventAutoHideAsync();
         Alert.alert('Success', 'Report submitted successfully!', [
           { text: 'OK', onPress: () => {
             console.log("Report sent:", reportData);
-            // Navigate back to dashboard/social layer
             router.push("/Dashboard/SocialLayerScreen");
           }}
         ]);
@@ -331,145 +488,260 @@ SplashScreen.preventAutoHideAsync();
   return (
     <SafeAreaView style={styles.container}>
       <Header />
-      
+      <View style={styles.titleContainer}>
+        <View style={styles.leftSection}>
+          <TouchableOpacity
+            onPress={() => router.push("/Reports/ReportUploadScreen")}
+            style={styles.backButton}
+          >
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.titleWrapper}>
+          <Text style={styles.title}>Report Details</Text>
+        </View>
+        <View style={styles.rightSection} />
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoidView}
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       >
-        <ScrollView 
+        <ScrollView
           style={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.formContainer}>
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Date</Text>
-            <TouchableOpacity 
-              style={styles.input} 
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Text style={date ? styles.inputText : styles.placeholderText}>
-                {date || "Select date"}
-              </Text>
-            </TouchableOpacity>
-            <DateTimePickerModal
-              isVisible={showDatePicker}
-              mode="date"
-              onConfirm={handleConfirmDate}
-              onCancel={() => setShowDatePicker(false)}
-            />
-          </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Date</Text>
+              <TouchableOpacity
+                style={styles.input}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={date ? styles.inputText : styles.placeholderText}>
+                  {date || "Select date"}
+                </Text>
+              </TouchableOpacity>
+              <DateTimePickerModal
+                isVisible={showDatePicker}
+                mode="date"
+                onConfirm={handleConfirmDate}
+                onCancel={() => setShowDatePicker(false)}
+              />
+            </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Time</Text>
-            <TouchableOpacity 
-              style={styles.input} 
-              onPress={() => setShowTimePicker(true)}
-            >
-              <Text style={time ? styles.inputText : styles.placeholderText}>
-                {time || "Select time"}
-              </Text>
-            </TouchableOpacity>
-            <DateTimePickerModal
-              isVisible={showTimePicker}
-              mode="time"
-              onConfirm={handleConfirmTime}
-              onCancel={() => setShowTimePicker(false)}
-            />
-          </View>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Time</Text>
+              <TouchableOpacity
+                style={styles.input}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <Text style={time ? styles.inputText : styles.placeholderText}>
+                  {time || "Select time"}
+                </Text>
+              </TouchableOpacity>
+              <DateTimePickerModal
+                isVisible={showTimePicker}
+                mode="time"
+                onConfirm={handleConfirmTime}
+                onCancel={() => setShowTimePicker(false)}
+              />
+            </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Location</Text>
-            <TouchableOpacity 
-              onPress={() => setShowLocationDropdown(!showLocationDropdown)}
-            >
-              <View style={styles.dropdownContainer}>
-                <Text style={[styles.input, location ? styles.inputText : styles.placeholderText]}>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Location</Text>
+              <TouchableOpacity
+                onPress={() => setShowLocationDropdown(!showLocationDropdown)}
+                style={styles.dropdownButton}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={
+                    location
+                      ? styles.dropdownButtonText
+                      : styles.dropdownButtonPlaceholder
+                  }
+                >
                   {location || "Select location"}
                 </Text>
-                <Text style={styles.dropdownIcon}>▼</Text>
-              </View>
-            </TouchableOpacity>
-            
-            {showLocationDropdown && (
-              <View style={styles.dropdownList}>
-                {locationOptions.map((item) => (
-                  <TouchableOpacity
-                    key={item}
-                    style={styles.dropdownItem}
-                    onPress={() => {
-                      setLocation(item);
-                      setShowLocationDropdown(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownItemText}>{item}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
+                <Text style={styles.dropdownIcon}>
+                  {showLocationDropdown ? "▲" : "▼"}
+                </Text>
+              </TouchableOpacity>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Category</Text>
-            <TouchableOpacity 
-              onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
-            >
-              <View style={styles.dropdownContainer}>
-                <Text style={[styles.input, category ? styles.inputText : styles.placeholderText]}>
+              {showLocationDropdown && (
+                <View style={styles.dropdownList}>
+                  <ScrollView 
+                    style={{ maxHeight: 180 }}
+                    showsVerticalScrollIndicator={true}
+                    nestedScrollEnabled={true}
+                  >
+                    {locationOptions.map((item, index) => {
+                      const isSelected = location === item;
+                      const isLast = index === locationOptions.length - 1;
+
+                      let itemStyle;
+                      if (isSelected && isLast) {
+                        itemStyle = styles.dropdownItemSelectedLast;
+                      } else if (isSelected) {
+                        itemStyle = styles.dropdownItemSelected;
+                      } else if (isLast) {
+                        itemStyle = styles.dropdownItemLast;
+                      } else {
+                        itemStyle = styles.dropdownItem;
+                      }
+
+                      return (
+                        <TouchableOpacity
+                          key={item}
+                          style={itemStyle}
+                          onPress={() => {
+                            setLocation(item);
+                            setShowLocationDropdown(false);
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Text
+                            style={
+                              isSelected
+                                ? styles.dropdownItemPrefixSelected
+                                : styles.dropdownItemPrefix
+                            }
+                          >
+                            {getLocationIcon(item)}
+                          </Text>
+                          <Text
+                            style={
+                              isSelected
+                                ? styles.dropdownItemTextSelected
+                                : styles.dropdownItemText
+                            }
+                          >
+                            {item}
+                          </Text>
+                          {isSelected && (
+                            <Text style={styles.dropdownItemIcon}>✓</Text>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Category</Text>
+              <TouchableOpacity
+                onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                style={styles.dropdownButton}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={
+                    category
+                      ? styles.dropdownButtonText
+                      : styles.dropdownButtonPlaceholder
+                  }
+                >
                   {category || "Select category"}
                 </Text>
-                <Text style={styles.dropdownIcon}>▼</Text>
-              </View>
-            </TouchableOpacity>
-            
-            {showCategoryDropdown && (
-              <View style={styles.dropdownList}>
-                {categoryOptions.map((item) => (
-                  <TouchableOpacity
-                    key={item}
-                    style={styles.dropdownItem}
-                    onPress={() => {
-                      setCategory(item);
-                      setShowCategoryDropdown(false);
-                    }}
+                <Text style={styles.dropdownIcon}>
+                  {showCategoryDropdown ? "▲" : "▼"}
+                </Text>
+              </TouchableOpacity>
+
+              {showCategoryDropdown && (
+                <View style={styles.dropdownList}>
+                  <ScrollView 
+                    style={{ maxHeight: 180 }}
+                    showsVerticalScrollIndicator={true}
+                    nestedScrollEnabled={true}
                   >
-                    <Text style={styles.dropdownItemText}>{item}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+                    {categoryOptions.map((item, index) => {
+                      const isSelected = category === item;
+                      const isLast = index === categoryOptions.length - 1;
+
+                      let itemStyle;
+                      if (isSelected && isLast) {
+                        itemStyle = styles.dropdownItemSelectedLast;
+                      } else if (isSelected) {
+                        itemStyle = styles.dropdownItemSelected;
+                      } else if (isLast) {
+                        itemStyle = styles.dropdownItemLast;
+                      } else {
+                        itemStyle = styles.dropdownItem;
+                      }
+
+                      return (
+                        <TouchableOpacity
+                          key={item}
+                          style={itemStyle}
+                          onPress={() => {
+                            setCategory(item);
+                            setShowCategoryDropdown(false);
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Text
+                            style={
+                              isSelected
+                                ? styles.dropdownItemPrefixSelected
+                                : styles.dropdownItemPrefix
+                            }
+                          >
+                            {getCategoryIcon(item)}
+                          </Text>
+                          <Text
+                            style={
+                              isSelected
+                                ? styles.dropdownItemTextSelected
+                                : styles.dropdownItemText
+                            }
+                          >
+                            {item}
+                          </Text>
+                          {isSelected && (
+                            <Text style={styles.dropdownItemIcon}>✓</Text>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={styles.textArea}
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+                placeholder="Enter description here"
+                placeholderTextColor="#AAAAAA"
+                returnKeyType="done"
+                blurOnSubmit={true}
+              />
+            </View>
           </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Description</Text>
-            <TextInput 
-              style={styles.textArea}
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={5}
-              textAlignVertical="top"
-              placeholder="Enter description here"
-              placeholderTextColor="#AAAAAA"
-              returnKeyType="done"
-              blurOnSubmit={true}
-            />
-          </View>
-        </View>
-
-        <TouchableOpacity 
-          style={[styles.sendButton, isSubmitting && { opacity: 0.6 }]}
-          onPress={handleSendReport}
-          disabled={isSubmitting}
-        >
-          <Text style={styles.sendButtonText}>
-            {isSubmitting ? 'Submitting...' : 'Send Report'}
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.sendButton, isSubmitting && { opacity: 0.6 }]}
+            onPress={handleSendReport}
+            disabled={isSubmitting}
+          >
+            <Text style={styles.sendButtonText}>
+              {isSubmitting ? 'Submitting...' : 'Send Report'}
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-  }
-  
+}

@@ -2,7 +2,11 @@ import { Inter_600SemiBold, useFonts } from "@expo-google-fonts/inter";
 import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  title?: string;
+}
+
+const Header: React.FC<HeaderProps> = ({ title }) => {
   const [fontsLoaded] = useFonts({
     Inter_600SemiBold,
   });
@@ -19,7 +23,7 @@ const Header: React.FC = () => {
           style={styles.logo}
           resizeMode="contain"
         />
-        <Text style={styles.logoText}>MetroWatch</Text>
+        <Text style={styles.logoText}>{title || "MetroWatch"}</Text>
       </View>
     </View>
   );

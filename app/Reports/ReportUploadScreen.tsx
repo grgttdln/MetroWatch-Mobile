@@ -1,8 +1,8 @@
 import {
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  useFonts,
 } from "@expo-google-fonts/inter";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
@@ -10,15 +10,15 @@ import { router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import {
-    ActionSheetIOS,
-    Alert,
-    Image,
-    Platform,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActionSheetIOS,
+  Alert,
+  Image,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Header from "../../components/Header";
 
@@ -30,15 +30,6 @@ interface SelectedImage {
   type: string;
   latitude?: number;
   longitude?: number;
-  geotag?: {
-    latitude: number;
-    longitude: number;
-    accuracy: number | null;
-    altitude: number | null;
-    timestamp: string;
-    address?: string | null;
-  };
-  exif?: any;
 }
 
 const styles = StyleSheet.create({
@@ -321,21 +312,12 @@ export default function ReportUploadScreen() {
       return;
     }
 
-    // Get current location with high accuracy for geotagging
+    // Get current location
     const location = await getCurrentLocation();
-    if (!location) {
-      Alert.alert(
-        "Location Required", 
-        "GPS location is required for geotagging. Please enable location services and try again."
-      );
-      return;
-    }
 
     const result = await ImagePicker.launchCameraAsync({
       aspect: [4, 3],
       quality: 1,
-      exif: true, // Include EXIF data
-      base64: false,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -344,36 +326,16 @@ export default function ReportUploadScreen() {
       let name =
         (asset as any).fileName ||
         uriParts[uriParts.length - 1] ||
-        `geotag-${Date.now()}.jpg`;
+        `photo-${Date.now()}.jpg`;
       const ext = name && name.includes(".") ? name.split(".").pop() : "jpg";
-      
-      // Create geotag data
-      const geotagData = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        accuracy: location.coords.accuracy,
-        altitude: location.coords.altitude,
-        timestamp: new Date().toISOString(),
-        address: null // Will be reverse geocoded if needed
-      };
-
       const image = {
         uri: asset.uri,
         name,
         type: `image/${ext}`,
-        latitude: geotagData.latitude,
-        longitude: geotagData.longitude,
-        geotag: geotagData,
-        exif: asset.exif || null
+        latitude: location?.coords.latitude,
+        longitude: location?.coords.longitude,
       } as SelectedImage;
-      
       setSelectedImages([...selectedImages, image].slice(0, 3));
-      
-      console.log('Photo captured with geotag:', {
-        location: `${geotagData.latitude}, ${geotagData.longitude}`,
-        accuracy: `${geotagData.accuracy}m`,
-        timestamp: geotagData.timestamp
-      });
     }
   };
 
