@@ -388,7 +388,7 @@ export default function ReportUploadScreen() {
           </View>
         ))}
 
-        <TouchableOpacity style={styles.continueButton}>
+        <TouchableOpacity style={styles.continueButton} onPress={() => router.push("/Reports/ReportDetailsScreen")}>
           <Text style={styles.continueButtonText}>Continue</Text>
         </TouchableOpacity>
       </View>
