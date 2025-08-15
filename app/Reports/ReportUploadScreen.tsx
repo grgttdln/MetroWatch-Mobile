@@ -330,7 +330,7 @@ export default function ReportUploadScreen() {
       <View style={styles.titleContainer}>
         <View style={styles.leftSection}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => router.push("/Dashboard/SocialLayerScreen")}
             style={styles.backButton}
           >
             <Text style={styles.backButtonText}>←</Text>

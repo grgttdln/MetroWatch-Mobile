@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import React from "react";
 import { Button, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import Header from "../../components/Header";
+import AppTabs from "../../navigation/AppTabs";
 
 export default function SocialLayerScreen() {
   return (
@@ -19,6 +20,7 @@ export default function SocialLayerScreen() {
             />
           </View>
         </View>
+        <AppTabs />
       </View>
     </SafeAreaView>
   );
