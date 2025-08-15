@@ -40,21 +40,10 @@ export default function Login() {
 
     try {
       const result = await loginUser(email, password);
-      
+
       if (result.success) {
-        Alert.alert(
-          "Success", 
-          `Welcome back, ${result.user.name}!`,
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                // Navigate to main app - you can change this route as needed
-                router.replace("/");
-              }
-            }
-          ]
-        );
+        router.replace("/Dashboard/SocialLayerScreen");
+        return;
       } else {
         Alert.alert("Error", result.error);
       }
