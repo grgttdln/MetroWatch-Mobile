@@ -9,6 +9,7 @@ import { router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useState } from "react";
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -19,12 +20,50 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { loginUser } from "../../services/supabase";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    // Validation
+    if (!email || !password) {
+      Alert.alert("Error", "Please fill in both email and password");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await loginUser(email, password);
+      
+      if (result.success) {
+        Alert.alert(
+          "Success", 
+          `Welcome back, ${result.user.name}!`,
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                // Navigate to main app - you can change this route as needed
+                router.replace("/");
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert("Error", result.error);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -91,10 +130,13 @@ export default function Login() {
         </View>
 
         <TouchableOpacity
-          style={styles.loginButton}
-          onPress={() => console.log("Login pressed")}
+          style={[styles.loginButton, loading && styles.buttonDisabled]}
+          onPress={handleLogin}
+          disabled={loading}
         >
-          <Text style={styles.loginButtonText}>Log in</Text>
+          <Text style={styles.loginButtonText}>
+            {loading ? "Logging in..." : "Log in"}
+          </Text>
         </TouchableOpacity>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -193,5 +235,8 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 18,
     color: "#FFFFFF",
+  },
+  buttonDisabled: {
+    backgroundColor: "#CCCCCC",
   },
 });

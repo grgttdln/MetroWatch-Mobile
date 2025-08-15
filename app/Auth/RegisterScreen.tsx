@@ -9,6 +9,7 @@ import { router } from "expo-router/build/imperative-api";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useState } from "react";
 import {
+    Alert,
     Image,
     KeyboardAvoidingView,
     Platform,
@@ -20,6 +21,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { registerUser } from "../../services/supabase";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -154,6 +156,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#FFFFFF",
   },
+  buttonDisabled: {
+    backgroundColor: "#CCCCCC",
+  },
 });
 
 export default function RegisterScreen() {
@@ -165,8 +170,52 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [city, setCity] = useState("");
   const [showCityPicker, setShowCityPicker] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   const cities = ["Manila", "Laguna", "Cavite"];
+
+  const handleRegister = async () => {
+    // Validation
+    if (!name || !email || !mobile || !password || !confirmPassword || !city) {
+      Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert("Error", "Password must be at least 6 characters long");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await registerUser(name, email, mobile, password, city);
+      
+      if (result.success) {
+        Alert.alert(
+          "Success", 
+          "Registration successful! You can now login.",
+          [
+            {
+              text: "OK",
+              onPress: () => router.push("/Auth/LoginScreen")
+            }
+          ]
+        );
+      } else {
+        Alert.alert("Error", result.error);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -302,10 +351,13 @@ export default function RegisterScreen() {
             </View>
 
             <TouchableOpacity
-              style={styles.registerButton}
-              onPress={() => console.log("Register pressed")}
+              style={[styles.registerButton, loading && styles.buttonDisabled]}
+              onPress={handleRegister}
+              disabled={loading}
             >
-              <Text style={styles.registerButtonText}>Register</Text>
+              <Text style={styles.registerButtonText}>
+                {loading ? "Registering..." : "Register"}
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
