@@ -264,11 +264,13 @@ export default function ReportUploadScreen() {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.8,
       allowsMultipleSelection: true,
       selectionLimit: 3,
+      allowsEditing: false,
+      exif: false,
     });
 
     if (!result.canceled) {
@@ -317,7 +319,10 @@ export default function ReportUploadScreen() {
 
     const result = await ImagePicker.launchCameraAsync({
       aspect: [4, 3],
-      quality: 1,
+      quality: 0.8,
+      allowsEditing: false,
+      exif: false,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {

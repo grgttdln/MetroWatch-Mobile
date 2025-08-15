@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createClient } from '@supabase/supabase-js'
 import * as FileSystem from 'expo-file-system'
+import { Platform } from 'react-native'
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_KEY
@@ -136,20 +137,45 @@ export const clearCurrentUser = async () => {
   }
 }
 
-// Upload image function with proper binary handling
+// Upload image function with Android/iOS compatibility
 export const uploadImage = async (imageUri, fileName) => {
   console.log('Starting image upload...')
   console.log('Image URI:', imageUri)
   console.log('File name:', fileName)
+  console.log('Platform:', Platform.OS)
   
   try {
+    let processedUri = imageUri
+    
+    // Android-specific handling for content:// URIs
+    if (Platform.OS === 'android' && imageUri.startsWith('content://')) {
+      console.log('Android content URI detected, copying to cache...')
+      
+      // Copy the file to a temporary location that we can access
+      const fileExtension = fileName.split('.').pop() || 'jpg'
+      const tempFileName = `temp_${Date.now()}.${fileExtension}`
+      const tempUri = `${FileSystem.cacheDirectory}${tempFileName}`
+      
+      try {
+        await FileSystem.copyAsync({
+          from: imageUri,
+          to: tempUri
+        })
+        processedUri = tempUri
+        console.log('File copied to temp location:', processedUri)
+      } catch (copyError) {
+        console.error('Failed to copy Android content URI:', copyError)
+        processedUri = imageUri
+      }
+    }
+    
     // Get file info first to verify file exists and get size
-    console.log('Getting file info...')
-    const fileInfo = await FileSystem.getInfoAsync(imageUri)
+    console.log('Getting file info for:', processedUri)
+    const fileInfo = await FileSystem.getInfoAsync(processedUri)
     console.log('File info:', fileInfo)
     
     if (!fileInfo.exists) {
-      console.error('File does not exist at URI:', imageUri)
+      console.error('File does not exist at URI:', processedUri)
       return { success: false, error: 'File does not exist' }
     }
     
@@ -166,8 +192,7 @@ export const uploadImage = async (imageUri, fileName) => {
     console.log('Unique filename generated:', uniqueFileName)
     
     console.log('Reading image file as base64...')
-    // Read the file as base64 for guaranteed compatibility
-    const base64Data = await FileSystem.readAsStringAsync(imageUri, {
+    const base64Data = await FileSystem.readAsStringAsync(processedUri, {
       encoding: FileSystem.EncodingType.Base64,
     })
     
@@ -178,8 +203,17 @@ export const uploadImage = async (imageUri, fileName) => {
       return { success: false, error: 'Image data could not be read' }
     }
     
+    // Clean up temp file if we created one
+    if (processedUri !== imageUri && processedUri.includes('temp_')) {
+      try {
+        await FileSystem.deleteAsync(processedUri, { idempotent: true })
+        console.log('Temp file cleaned up')
+      } catch (cleanupError) {
+        console.log('Temp file cleanup failed (not critical):', cleanupError.message)
+      }
+    }
+    
     console.log('Converting base64 to ArrayBuffer...')
-    // Convert base64 to ArrayBuffer for binary upload
     const binaryString = atob(base64Data)
     const arrayBuffer = new ArrayBuffer(binaryString.length)
     const uint8Array = new Uint8Array(arrayBuffer)
@@ -191,9 +225,6 @@ export const uploadImage = async (imageUri, fileName) => {
     console.log('ArrayBuffer conversion successful, size:', arrayBuffer.byteLength, 'bytes')
     
     console.log('Uploading to Supabase storage bucket: reports')
-    console.log('Content-Type:', `image/${fileExt}`)
-    
-    // Upload the ArrayBuffer to Supabase storage
     const { data, error } = await supabase.storage
       .from('reports')
       .upload(uniqueFileName, arrayBuffer, {
@@ -203,14 +234,11 @@ export const uploadImage = async (imageUri, fileName) => {
     
     if (error) {
       console.error('Storage upload error:', error)
-      console.error('Error details:', JSON.stringify(error, null, 2))
       return { success: false, error: error.message }
     }
     
     console.log('Upload successful, storage data:', data)
     
-    console.log('Getting public URL...')
-    // Get the public URL
     const { data: urlData } = supabase.storage
       .from('reports')
       .getPublicUrl(uniqueFileName)
@@ -219,7 +247,6 @@ export const uploadImage = async (imageUri, fileName) => {
     return { success: true, url: urlData.publicUrl }
   } catch (error) {
     console.error('Upload function error:', error)
-    console.error('Error stack:', error.stack)
     return { success: false, error: error.message }
   }
 }
@@ -228,11 +255,9 @@ export const uploadImage = async (imageUri, fileName) => {
 export const createReport = async (reportData) => {
   console.log('Starting report creation...')
   
-  // Get current user
   const user = await getCurrentUser()
   console.log('Current user for report:', user)
   
-  // Add user ID to report data
   const reportDataWithUser = {
     ...reportData,
     user_id: user?.id || null
@@ -248,7 +273,6 @@ export const createReport = async (reportData) => {
     
     if (error) {
       console.error('Report creation error:', error)
-      console.error('Error details:', JSON.stringify(error, null, 2))
       return { success: false, error: error.message }
     }
     
@@ -256,7 +280,6 @@ export const createReport = async (reportData) => {
     return { success: true, report: data[0] }
   } catch (error) {
     console.error('Report creation error:', error)
-    console.error('Error stack:', error.stack)
     return { success: false, error: error.message }
   }
 }
