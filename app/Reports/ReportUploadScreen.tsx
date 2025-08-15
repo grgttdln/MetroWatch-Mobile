@@ -5,14 +5,19 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActionSheetIOS,
+  Alert,
+  Image,
+  Platform,
   SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import Header from "../../components/Header";
 
@@ -34,34 +39,76 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 0,
   },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 16,
+    marginBottom: 8,
+    position: "relative",
+    paddingHorizontal: 16,
+  },
+  leftSection: {
+    width: 40,
+    zIndex: 1,
+  },
+  rightSection: {
+    width: 40,
+  },
+  titleWrapper: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backButton: {
+    padding: 8,
+  },
+  backButtonText: {
+    fontSize: 20,
+    color: "#1A237E",
+  },
+  title: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 24,
+    color: "#000000",
+    textAlign: "center",
+  },
   uploadArea: {
-    height: 400,
     borderWidth: 2,
     borderColor: "#CCCCCC",
     borderStyle: "dashed",
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
     padding: 20,
+  },
+  uploadAreaWithImages: {
+    height: 200,
+    marginBottom: 16,
+  },
+  uploadAreaEmpty: {
+    height: 400,
+    marginBottom: 20,
   },
   uploadIconContainer: {
     marginBottom: 20,
   },
   cloudIconContainer: {
-    position: 'relative',
+    position: "relative",
     width: 80,
     height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   cloudIcon: {
     fontSize: 60,
   },
   arrowIcon: {
-    position: 'absolute',
+    position: "absolute",
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     top: 28,
   },
   browseText: {
@@ -92,10 +139,27 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 10,
   },
+  selectedFileInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 12,
+  },
+  thumbnail: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    marginRight: 12,
+    backgroundColor: "#F0F0F0",
+  },
+  fileNameWrapper: {
+    flex: 1,
+  },
   fileName: {
     fontFamily: "Inter_400Regular",
     fontSize: 16,
     color: "#333333",
+    flexShrink: 1,
   },
   deleteButton: {
     padding: 5,
@@ -128,14 +192,42 @@ export default function ReportUploadScreen() {
     Inter_600SemiBold,
   });
 
+  useEffect(() => {
+    if (fontsLoaded) {
+      // Hide splash once fonts are ready so alerts/action sheets can appear on iOS
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded]);
+
   if (!fontsLoaded) {
     return null;
   }
 
+  const ensureLibraryPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    return status === "granted";
+  };
+
+  const ensureCameraPermission = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    return status === "granted";
+  };
+
   const pickImage = async () => {
+    if (selectedImages.length >= 3) {
+      Alert.alert(
+        "Upload limit reached",
+        "You can only upload up to 3 images."
+      );
+      return;
+    }
+    const hasPermission = await ensureLibraryPermission();
+    if (!hasPermission) {
+      Alert.alert("Permission required", "Please allow photo library access.");
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      mediaTypes: ["images"],
       aspect: [4, 3],
       quality: 1,
       allowsMultipleSelection: true,
@@ -147,17 +239,82 @@ export default function ReportUploadScreen() {
         // Extract file name from uri
         const uriParts = asset.uri.split("/");
         const name = uriParts[uriParts.length - 1];
-        
+
         return {
           uri: asset.uri,
           name: name,
           type: `image/${name.split(".")[1]}`,
         };
       });
-      
-      // Limit to 3 images total
-      const updatedImages = [...selectedImages, ...newImages].slice(0, 3);
-      setSelectedImages(updatedImages);
+
+      const availableSlots = 3 - selectedImages.length;
+      const imagesToAdd = newImages.slice(0, Math.max(availableSlots, 0));
+      if (newImages.length > availableSlots) {
+        Alert.alert(
+          "Upload limit reached",
+          `Only the first ${imagesToAdd.length} image(s) were added. You can upload up to 3 images total.`
+        );
+      }
+      if (imagesToAdd.length > 0) {
+        setSelectedImages([...selectedImages, ...imagesToAdd]);
+      }
+    }
+  };
+
+  const takePhoto = async () => {
+    if (selectedImages.length >= 3) {
+      Alert.alert(
+        "Upload limit reached",
+        "You can only upload up to 3 images."
+      );
+      return;
+    }
+    const hasPermission = await ensureCameraPermission();
+    if (!hasPermission) {
+      Alert.alert("Permission required", "Please allow camera access.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const asset = result.assets[0];
+      const uriParts = asset.uri.split("/");
+      let name =
+        (asset as any).fileName ||
+        uriParts[uriParts.length - 1] ||
+        `photo-${Date.now()}.jpg`;
+      const ext = name && name.includes(".") ? name.split(".").pop() : "jpg";
+      const image = {
+        uri: asset.uri,
+        name,
+        type: `image/${ext}`,
+      } as SelectedImage;
+      setSelectedImages([...selectedImages, image].slice(0, 3));
+    }
+  };
+
+  const pickImageSource = () => {
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: "Add a Photo",
+          options: ["Camera", "Photo Library", "Cancel"],
+          cancelButtonIndex: 2,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) takePhoto();
+          if (buttonIndex === 1) pickImage();
+        }
+      );
+    } else {
+      Alert.alert("Add a Photo", "Choose a source", [
+        { text: "Camera", onPress: takePhoto },
+        { text: "Photo Library", onPress: pickImage },
+        { text: "Cancel", style: "cancel" },
+      ]);
     }
   };
 
@@ -169,10 +326,32 @@ export default function ReportUploadScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title="What's your concern?" />
-      
+      <Header />
+      <View style={styles.titleContainer}>
+        <View style={styles.leftSection}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.titleWrapper}>
+          <Text style={styles.title}>What's your concern?</Text>
+        </View>
+        <View style={styles.rightSection} />
+      </View>
+
       <View style={styles.content}>
-        <TouchableOpacity style={styles.uploadArea} onPress={pickImage}>
+        <TouchableOpacity
+          style={[
+            styles.uploadArea,
+            selectedImages.length > 0
+              ? styles.uploadAreaWithImages
+              : styles.uploadAreaEmpty,
+          ]}
+          onPress={pickImageSource}
+        >
           <View style={styles.uploadIconContainer}>
             <View style={styles.cloudIconContainer}>
               <Text style={styles.cloudIcon}>☁️</Text>
@@ -180,9 +359,7 @@ export default function ReportUploadScreen() {
             </View>
           </View>
           <Text style={styles.browseText}>Browse Files</Text>
-          <Text style={styles.supportedText}>
-            Supported Formats: JPEG, PNG
-          </Text>
+          <Text style={styles.supportedText}>Supported Formats: JPEG, PNG</Text>
           <Text style={styles.limitText}>
             Upload Limit: 3 image files only.
           </Text>
@@ -190,12 +367,23 @@ export default function ReportUploadScreen() {
 
         {selectedImages.map((image, index) => (
           <View key={index} style={styles.selectedFileContainer}>
-            <Text style={styles.fileName}>{image.name}</Text>
+            <View style={styles.selectedFileInfoContainer}>
+              <Image source={{ uri: image.uri }} style={styles.thumbnail} />
+              <View style={styles.fileNameWrapper}>
+                <Text
+                  style={styles.fileName}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {image.name}
+                </Text>
+              </View>
+            </View>
             <TouchableOpacity
               style={styles.deleteButton}
               onPress={() => removeImage(index)}
             >
-              <Text style={styles.deleteIcon}>X</Text>
+              <Text style={styles.deleteIcon}>✕</Text>
             </TouchableOpacity>
           </View>
         ))}

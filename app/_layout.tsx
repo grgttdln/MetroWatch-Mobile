@@ -13,6 +13,10 @@ export default function RootLayout() {
         name="Dashboard/SocialLayerScreen"
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="Reports/ReportUploadScreen"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }
