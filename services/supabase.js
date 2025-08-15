@@ -147,25 +147,43 @@ export const uploadImage = async (imageUri, fileName) => {
   try {
     let processedUri = imageUri
     
-    // Android-specific handling for content:// URIs
-    if (Platform.OS === 'android' && imageUri.startsWith('content://')) {
-      console.log('Android content URI detected, copying to cache...')
+    // Android-specific handling for both content:// and file:// URIs
+    if (Platform.OS === 'android') {
+      console.log('Android detected, checking URI type...')
       
-      // Copy the file to a temporary location that we can access
-      const fileExtension = fileName.split('.').pop() || 'jpg'
-      const tempFileName = `temp_${Date.now()}.${fileExtension}`
-      const tempUri = `${FileSystem.cacheDirectory}${tempFileName}`
-      
-      try {
-        await FileSystem.copyAsync({
-          from: imageUri,
-          to: tempUri
-        })
-        processedUri = tempUri
-        console.log('File copied to temp location:', processedUri)
-      } catch (copyError) {
-        console.error('Failed to copy Android content URI:', copyError)
-        processedUri = imageUri
+      if (imageUri.startsWith('content://') || imageUri.startsWith('file://')) {
+        console.log('Android URI detected, copying to accessible cache...')
+        
+        // Copy the file to a temporary location that we can access
+        const fileExtension = fileName.split('.').pop() || 'jpg'
+        const tempFileName = `upload_${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExtension}`
+        const tempUri = `${FileSystem.cacheDirectory}${tempFileName}`
+        
+        try {
+          console.log('Copying from:', imageUri)
+          console.log('Copying to:', tempUri)
+          
+          await FileSystem.copyAsync({
+            from: imageUri,
+            to: tempUri
+          })
+          
+          // Verify the copy was successful
+          const copyInfo = await FileSystem.getInfoAsync(tempUri)
+          console.log('Copy verification:', copyInfo)
+          
+          if (copyInfo.exists && copyInfo.size > 0) {
+            processedUri = tempUri
+            console.log('File successfully copied to:', processedUri)
+          } else {
+            console.log('Copy verification failed, trying direct access...')
+            processedUri = imageUri
+          }
+        } catch (copyError) {
+          console.error('Failed to copy Android URI:', copyError)
+          // Try to use the original URI as fallback
+          processedUri = imageUri
+        }
       }
     }
     
@@ -176,7 +194,21 @@ export const uploadImage = async (imageUri, fileName) => {
     
     if (!fileInfo.exists) {
       console.error('File does not exist at URI:', processedUri)
-      return { success: false, error: 'File does not exist' }
+      
+      // If on Android and the processed URI failed, try alternative approaches
+      if (Platform.OS === 'android' && processedUri !== imageUri) {
+        console.log('Trying original URI as fallback:', imageUri)
+        const originalFileInfo = await FileSystem.getInfoAsync(imageUri)
+        console.log('Original file info:', originalFileInfo)
+        
+        if (originalFileInfo.exists) {
+          processedUri = imageUri
+        } else {
+          return { success: false, error: 'File does not exist and cannot be accessed' }
+        }
+      } else {
+        return { success: false, error: 'File does not exist' }
+      }
     }
     
     if (fileInfo.size === 0) {
@@ -204,7 +236,7 @@ export const uploadImage = async (imageUri, fileName) => {
     }
     
     // Clean up temp file if we created one
-    if (processedUri !== imageUri && processedUri.includes('temp_')) {
+    if (processedUri !== imageUri && processedUri.includes('upload_')) {
       try {
         await FileSystem.deleteAsync(processedUri, { idempotent: true })
         console.log('Temp file cleaned up')
@@ -418,5 +450,265 @@ export const getAllReports = async (limit = 50, offset = 0) => {
   } catch (error) {
     console.error('Error in getAllReports:', error)
     return { success: false, error: error.message }
+  }
+}
+
+// Get community feed reports with filtering and sorting
+export const getCommunityReports = async () => {
+  console.log('Getting community reports')
+  
+  try {
+    const currentUser = await getCurrentUser()
+    
+    let query = supabase
+      .from('reports')
+      .select(`
+        *,
+        users!fk_reports_user (
+          name,
+          email
+        )
+      `)
+      .order('date', { ascending: false })
+      .order('time', { ascending: false })
+    
+    const { data, error } = await query
+    
+    if (error) {
+      console.error('Error fetching community reports:', error)
+      return { success: false, error: error.message }
+    }
+    
+    // Get user votes from local storage
+    let userVotes = {}
+    if (currentUser) {
+      try {
+        const userVotesStr = await AsyncStorage.getItem(`user_votes_${currentUser.id}`) || '{}'
+        userVotes = JSON.parse(userVotesStr)
+      } catch (error) {
+        console.error('Error getting user votes:', error)
+      }
+    }
+    
+    // Calculate net votes and severity for each report
+    const reportsWithCalculatedSeverity = data?.map(report => {
+      const upvotes = report.upvote || 0
+      const downvotes = report.downvote || 0
+      const netVotes = upvotes - downvotes
+      
+      // Calculate severity based on net votes
+      let severity = 'Low'
+      if (netVotes >= 10) {
+        severity = 'Critical'
+      } else if (netVotes >= 5) {
+        severity = 'High'
+      } else if (netVotes >= 2) {
+        severity = 'Medium'
+      }
+      
+      // Check if this is the current user's post and add "(You)" indicator
+      const isCurrentUser = currentUser && report.user_id === currentUser.id
+      const displayName = isCurrentUser 
+        ? `${report.users?.name || 'Anonymous'} (You)`
+        : (report.users?.name || 'Anonymous')
+      
+      // Get user's vote for this report
+      const userVoteType = userVotes[report.report_id] || null
+      
+      return {
+        ...report,
+        netVotes,
+        severity,
+        displayName,
+        isCurrentUser,
+        userVote: userVoteType,
+        status: report.status || 'Not Resolved', // Default status
+        // Format time for display
+        timeAgo: formatTimeAgo(report.date, report.time)
+      }
+    }) || []
+    
+    console.log('Community reports fetched successfully:', reportsWithCalculatedSeverity.length, 'reports')
+    return { success: true, reports: reportsWithCalculatedSeverity }
+  } catch (error) {
+    console.error('Error in getCommunityReports:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Check if user has already voted on this report
+export const checkUserVote = async (reportId) => {
+  try {
+    const currentUser = await getCurrentUser()
+    if (!currentUser) {
+      return { success: true, hasVoted: false, voteType: null }
+    }
+
+    // For now, we'll use localStorage/AsyncStorage to track votes
+    // This is simpler than creating a database table
+    const userVotes = await AsyncStorage.getItem(`user_votes_${currentUser.id}`) || '{}'
+    const votesObj = JSON.parse(userVotes)
+    
+    const hasVoted = votesObj[reportId] !== undefined
+    const voteType = votesObj[reportId] || null
+    
+    return { success: true, hasVoted, voteType }
+  } catch (error) {
+    console.error('Error checking user vote:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Record user vote locally
+const recordUserVote = async (reportId, voteType) => {
+  try {
+    const currentUser = await getCurrentUser()
+    if (!currentUser) return
+
+    const userVotes = await AsyncStorage.getItem(`user_votes_${currentUser.id}`) || '{}'
+    const votesObj = JSON.parse(userVotes)
+    
+    votesObj[reportId] = voteType
+    
+    await AsyncStorage.setItem(`user_votes_${currentUser.id}`, JSON.stringify(votesObj))
+  } catch (error) {
+    console.error('Error recording user vote:', error)
+  }
+}
+
+// Upvote a report
+export const upvoteReport = async (reportId) => {
+  console.log('Upvoting report:', reportId)
+  
+  try {
+    // Check if user has already voted
+    const voteCheck = await checkUserVote(reportId)
+    if (!voteCheck.success) {
+      return { success: false, error: voteCheck.error }
+    }
+    
+    if (voteCheck.hasVoted && voteCheck.voteType === 'upvote') {
+      return { success: false, error: 'You have already upvoted this report' }
+    }
+
+    // Get current vote counts
+    const { data: currentData, error: fetchError } = await supabase
+      .from('reports')
+      .select('upvote, downvote')
+      .eq('report_id', reportId)
+      .single()
+    
+    if (fetchError) {
+      console.error('Error fetching current vote counts:', fetchError)
+      return { success: false, error: fetchError.message }
+    }
+    
+    let newUpvoteCount = (currentData.upvote || 0) + 1
+    let newDownvoteCount = currentData.downvote || 0
+    
+    // If user previously downvoted, remove that downvote
+    if (voteCheck.hasVoted && voteCheck.voteType === 'downvote') {
+      newDownvoteCount = Math.max(0, newDownvoteCount - 1)
+    }
+    
+    const { data, error } = await supabase
+      .from('reports')
+      .update({ 
+        upvote: newUpvoteCount,
+        downvote: newDownvoteCount 
+      })
+      .eq('report_id', reportId)
+      .select()
+    
+    if (error) {
+      console.error('Error upvoting report:', error)
+      return { success: false, error: error.message }
+    }
+    
+    // Record the vote locally
+    await recordUserVote(reportId, 'upvote')
+    
+    console.log('Report upvoted successfully')
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error in upvoteReport:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Downvote a report
+export const downvoteReport = async (reportId) => {
+  console.log('Downvoting report:', reportId)
+  
+  try {
+    // Check if user has already voted
+    const voteCheck = await checkUserVote(reportId)
+    if (!voteCheck.success) {
+      return { success: false, error: voteCheck.error }
+    }
+    
+    if (voteCheck.hasVoted && voteCheck.voteType === 'downvote') {
+      return { success: false, error: 'You have already downvoted this report' }
+    }
+
+    // Get current vote counts
+    const { data: currentData, error: fetchError } = await supabase
+      .from('reports')
+      .select('upvote, downvote')
+      .eq('report_id', reportId)
+      .single()
+    
+    if (fetchError) {
+      console.error('Error fetching current vote counts:', fetchError)
+      return { success: false, error: fetchError.message }
+    }
+    
+    let newDownvoteCount = (currentData.downvote || 0) + 1
+    let newUpvoteCount = currentData.upvote || 0
+    
+    // If user previously upvoted, remove that upvote
+    if (voteCheck.hasVoted && voteCheck.voteType === 'upvote') {
+      newUpvoteCount = Math.max(0, newUpvoteCount - 1)
+    }
+    
+    const { data, error } = await supabase
+      .from('reports')
+      .update({ 
+        upvote: newUpvoteCount,
+        downvote: newDownvoteCount 
+      })
+      .eq('report_id', reportId)
+      .select()
+    
+    if (error) {
+      console.error('Error downvoting report:', error)
+      return { success: false, error: error.message }
+    }
+    
+    // Record the vote locally
+    await recordUserVote(reportId, 'downvote')
+    
+    console.log('Report downvoted successfully')
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error in downvoteReport:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Helper function to format time ago
+const formatTimeAgo = (date, time) => {
+  try {
+    const reportDateTime = new Date(`${date}T${time}`)
+    const now = new Date()
+    const diffInMinutes = Math.floor((now - reportDateTime) / (1000 * 60))
+    
+    if (diffInMinutes < 1) return 'Just now'
+    if (diffInMinutes < 60) return `${diffInMinutes}m`
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h`
+    return `${Math.floor(diffInMinutes / 1440)}d`
+  } catch (error) {
+    console.error('Error formatting time ago:', error)
+    return time.substring(0, 5) // Return HH:MM format as fallback
   }
 }
