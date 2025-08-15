@@ -176,6 +176,9 @@ const styles = StyleSheet.create({
     marginTop: "auto",
     marginBottom: 20,
   },
+  continueButtonDisabled: {
+    opacity: 0.5,
+  },
   continueButtonText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 18,
@@ -388,7 +391,24 @@ export default function ReportUploadScreen() {
           </View>
         ))}
 
-        <TouchableOpacity style={styles.continueButton} onPress={() => router.push("/Reports/ReportDetailsScreen")}>
+        <TouchableOpacity
+          style={[
+            styles.continueButton,
+            selectedImages.length === 0 && styles.continueButtonDisabled,
+          ]}
+          onPress={() => {
+            if (selectedImages.length === 0) {
+              Alert.alert(
+                "No photos added",
+                "Please upload or take at least one photo to continue."
+              );
+              return;
+            }
+            router.push("/Reports/ReportDetailsScreen");
+          }}
+          disabled={selectedImages.length === 0}
+          activeOpacity={selectedImages.length === 0 ? 1 : 0.7}
+        >
           <Text style={styles.continueButtonText}>Continue</Text>
         </TouchableOpacity>
       </View>

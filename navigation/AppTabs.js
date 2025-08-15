@@ -1,6 +1,6 @@
-import { usePathname, useRouter } from 'expo-router';
-import React from 'react';
-import { Image, StyleSheet, TouchableOpacity, View, Animated } from 'react-native';
+import { usePathname, useRouter } from "expo-router";
+import React from "react";
+import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
 const AppTabs = () => {
   const router = useRouter();
@@ -11,7 +11,7 @@ const AppTabs = () => {
     if (isActive(routeName)) {
       return;
     }
-    
+
     // Use replace with fade animation
     router.replace(screenPath);
   };
@@ -24,55 +24,60 @@ const AppTabs = () => {
     <View style={styles.container}>
       <View style={styles.navbar}>
         {/* Social Layer Icon - Left */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.iconButton, 
-            isActive('Dashboard') && styles.activeButton,
-            isActive('Dashboard') && styles.disabledButton
+            styles.iconButton,
+            isActive("Dashboard") && styles.activeButton,
+            isActive("Dashboard") && styles.disabledButton,
           ]}
-          onPress={() => navigateToScreen('/Dashboard/SocialLayerScreen', 'Dashboard')}
-          disabled={isActive('Dashboard')}
-          activeOpacity={isActive('Dashboard') ? 1 : 0.7}
+          onPress={() =>
+            navigateToScreen("/Dashboard/SocialLayerScreen", "Dashboard")
+          }
+          disabled={isActive("Dashboard")}
+          activeOpacity={isActive("Dashboard") ? 1 : 0.7}
         >
-          <Image 
-            source={require('../assets/images/icons/social.png')} 
-            style={[styles.icon, isActive('Dashboard') && styles.activeIcon]} 
+          <Image
+            source={require("../assets/images/icons/social.png")}
+            style={[styles.icon, isActive("Dashboard") && styles.activeIcon]}
           />
         </TouchableOpacity>
 
         {/* Elevated Report Icon - Center */}
         <View style={styles.centerButtonContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.elevatedButton, 
-              isActive('Reports') && styles.activeElevatedButton,
-              isActive('Reports') && styles.disabledElevatedButton
+              styles.elevatedButton,
+              isActive("Reports") && styles.activeElevatedButton,
+              isActive("Reports") && styles.disabledElevatedButton,
             ]}
-            onPress={() => navigateToScreen('/Reports/ReportUploadScreen', 'Reports')}
-            disabled={isActive('Reports')}
-            activeOpacity={isActive('Reports') ? 1 : 0.7}
+            onPress={() =>
+              navigateToScreen("/Reports/ReportUploadScreen", "Reports")
+            }
+            disabled={isActive("Reports")}
+            activeOpacity={isActive("Reports") ? 1 : 0.7}
           >
-            <Image 
-              source={require('../assets/images/icons/report.png')} 
-              style={styles.reportIcon} 
+            <Image
+              source={require("../assets/images/icons/report.png")}
+              style={styles.reportIcon}
+              resizeMode="contain"
             />
           </TouchableOpacity>
         </View>
 
         {/* Profile Icon - Right */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.iconButton, 
-            isActive('Profile') && styles.activeButton,
-            isActive('Profile') && styles.disabledButton
+            styles.iconButton,
+            isActive("Profile") && styles.activeButton,
+            isActive("Profile") && styles.disabledButton,
           ]}
-          onPress={() => navigateToScreen('/Profile/MyImpactScreen', 'Profile')}
-          disabled={isActive('Profile')}
-          activeOpacity={isActive('Profile') ? 1 : 0.7}
+          onPress={() => navigateToScreen("/Profile/MyImpactScreen", "Profile")}
+          disabled={isActive("Profile")}
+          activeOpacity={isActive("Profile") ? 1 : 0.7}
         >
-          <Image 
-            source={require('../assets/images/icons/profile.png')} 
-            style={[styles.icon, isActive('Profile') && styles.activeIcon]} 
+          <Image
+            source={require("../assets/images/icons/profile.png")}
+            style={[styles.icon, isActive("Profile") && styles.activeIcon]}
           />
         </TouchableOpacity>
       </View>
@@ -82,22 +87,22 @@ const AppTabs = () => {
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     left: 20,
     right: 20,
     zIndex: 1000,
   },
   navbar: {
-    flexDirection: 'row',
-    backgroundColor: '#002697', // Your specified blue color
+    flexDirection: "row",
+    backgroundColor: "#002697", // Your specified blue color
     borderRadius: 30, // Slightly reduced for more compact look
     paddingVertical: 12, // Reduced from 18
     paddingHorizontal: 25, // Reduced from 35 to bring icons closer
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    justifyContent: "space-between",
+    alignItems: "center",
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 4,
@@ -111,11 +116,11 @@ const styles = StyleSheet.create({
     borderRadius: 20, // Reduced from 25
     minWidth: 44, // Reduced from 50
     minHeight: 44, // Reduced from 50
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   activeButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
   },
   disabledButton: {
     opacity: 0.8,
@@ -123,26 +128,26 @@ const styles = StyleSheet.create({
   icon: {
     width: 36,
     height: 36,
-    tintColor: '#FFFFFF',
+    tintColor: "#FFFFFF",
   },
   activeIcon: {
-    tintColor: '#FFFFFF',
+    tintColor: "#FFFFFF",
   },
   centerButtonContainer: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
   },
   elevatedButton: {
     width: 90, // Made bigger to match the image
     height: 90, // Made bigger to match the image
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 45,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: -50, // More elevation to peak above
     elevation: 15,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 8,
@@ -150,18 +155,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 10,
     borderWidth: 4,
-    borderColor: '#002697', // Your specified blue color
+    borderColor: "#002697", // Your specified blue color
+    overflow: "hidden",
   },
   activeElevatedButton: {
-    backgroundColor: '#F0F8FF',
+    backgroundColor: "#F0F8FF",
   },
   disabledElevatedButton: {
     opacity: 0.8,
   },
   reportIcon: {
-    width: 42, // Made bigger to match the larger button
-    height: 42, // Made bigger to match the larger button
-    tintColor: '#002697', // Your specified blue color
+    width: "100%",
+    height: "100%",
   },
 });
 
