@@ -1,4 +1,3 @@
-import { MaterialIcons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
@@ -7,13 +6,17 @@ import {
   SafeAreaView,
   StyleSheet,
   Text,
-  TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import Header from "../../components/Header";
 import ReportCard from "../../components/ReportCard";
 import AppTabs from "../../navigation/AppTabs";
-import { downvoteReport, getCommunityReports, getCurrentUser, upvoteReport } from "../../services/supabase";
+import {
+  downvoteReport,
+  getCommunityReports,
+  getCurrentUser,
+  upvoteReport,
+} from "../../services/supabase";
 
 interface Report {
   report_id: number;
@@ -30,7 +33,7 @@ interface Report {
   timeAgo: string;
   displayName: string;
   isCurrentUser: boolean;
-  userVote: 'upvote' | 'downvote' | null;
+  userVote: "upvote" | "downvote" | null;
   status: string;
   users: {
     name: string;
@@ -56,7 +59,7 @@ export default function SocialLayerScreen() {
   const fetchReports = useCallback(async () => {
     try {
       const result = await getCommunityReports();
-      
+
       if (result.success) {
         setReports(result.reports || []);
       } else {
@@ -88,7 +91,6 @@ export default function SocialLayerScreen() {
     try {
       const result = await upvoteReport(reportId);
       if (result.success) {
-        // Refresh the reports to show updated vote count
         fetchReports();
       } else {
         Alert.alert("Cannot Vote", result.error || "Failed to upvote report");
@@ -103,7 +105,6 @@ export default function SocialLayerScreen() {
     try {
       const result = await downvoteReport(reportId);
       if (result.success) {
-        // Refresh the reports to show updated vote count
         fetchReports();
       } else {
         Alert.alert("Cannot Vote", result.error || "Failed to downvote report");
@@ -115,7 +116,7 @@ export default function SocialLayerScreen() {
   };
 
   const renderReportItem = ({ item }: { item: Report }) => (
-    <ReportCard 
+    <ReportCard
       item={item}
       onUpvote={handleUpvote}
       onDownvote={handleDownvote}
@@ -127,11 +128,10 @@ export default function SocialLayerScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
         <Header />
-        
+
         <View style={styles.content}>
           <Text style={styles.title}>Community Feed</Text>
-          
-          {/* Reports List */}
+
           <FlatList
             data={reports}
             renderItem={renderReportItem}
@@ -143,7 +143,7 @@ export default function SocialLayerScreen() {
             showsVerticalScrollIndicator={false}
           />
         </View>
-        
+
         <AppTabs />
       </View>
     </SafeAreaView>
@@ -168,6 +168,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   listContainer: {
-    paddingBottom: 100, // Add extra padding to prevent navbar covering
+    paddingBottom: 100,
   },
 });
