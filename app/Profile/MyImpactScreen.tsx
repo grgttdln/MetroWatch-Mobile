@@ -15,16 +15,15 @@ import Header from "../../components/Header";
 import ReportCard from "../../components/ReportCard";
 import AppTabs from "../../navigation/AppTabs";
 import {
-  clearCurrentUser,
-  fetchUserById,
+  getCurrentProfile,
   getCurrentUser,
   getUserReports,
+  logoutUser,
 } from "../../services/supabase";
 
-interface User {
-  id: number;
+interface Profile {
+  id: string;
   name: string;
-  email: string;
   mobile: string;
   city: string;
   points: number;
@@ -57,22 +56,18 @@ interface Report {
 
 export default function MyImpactScreen() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [userReports, setUserReports] = useState<Report[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchUserData = async () => {
     try {
-      const currentUser = await getCurrentUser();
-      if (currentUser && currentUser.id) {
-        const result = await fetchUserById(currentUser.id);
-
-        if (result.success) {
-          setUser(result.user);
-        } else {
-          console.error("Error fetching user data:", result.error);
-        }
+      const currentProfile = await getCurrentProfile();
+      if (currentProfile) {
+        setProfile(currentProfile);
+      } else {
+        console.error("No user profile found");
       }
     } catch (error) {
       console.error("Error in fetchUserData:", error);
@@ -84,23 +79,39 @@ export default function MyImpactScreen() {
   const fetchUserReports = async () => {
     try {
       const currentUser = await getCurrentUser();
+      const currentProfile = await getCurrentProfile();
       if (currentUser && currentUser.id) {
         const result = await getUserReports(currentUser.id);
 
         if (result.success && result.reports) {
-          const transformedReports = result.reports.map((report: any) => ({
-            ...report,
-            netVotes: (report.upvote || 0) - (report.downvote || 0),
-            timeAgo: getTimeAgo(report.created_at),
-            displayName: currentUser.name || "You",
-            isCurrentUser: true,
-            userVote: null,
-            status: report.status || "Open",
-            users: {
-              name: currentUser.name || "You",
-              email: currentUser.email || "",
-            },
-          }));
+          const transformedReports = result.reports.map((report: any) => {
+            const netVotes = (report.upvote || 0) - (report.downvote || 0);
+
+            // Calculate severity based on net votes
+            let severity = "Low";
+            if (netVotes >= 10) {
+              severity = "Critical";
+            } else if (netVotes >= 5) {
+              severity = "High";
+            } else if (netVotes >= 2) {
+              severity = "Medium";
+            }
+
+            return {
+              ...report,
+              netVotes,
+              severity,
+              timeAgo: formatTimeAgo(report.date, report.time),
+              displayName: currentProfile?.name || "You",
+              isCurrentUser: true,
+              userVote: null,
+              status: report.status || "Open",
+              users: {
+                name: currentProfile?.name || "You",
+                email: currentUser.email || "",
+              },
+            };
+          });
 
           setUserReports(transformedReports);
         } else {
@@ -112,20 +123,22 @@ export default function MyImpactScreen() {
     }
   };
 
-  // Helper function to calculate time ago
-  const getTimeAgo = (dateString: string): string => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  // Helper function to format time ago
+  const formatTimeAgo = (date: string, time: string): string => {
+    try {
+      const reportDateTime = new Date(`${date}T${time}`);
+      const now = new Date();
+      const diffInMinutes = Math.floor(
+        (now.getTime() - reportDateTime.getTime()) / (1000 * 60)
+      );
 
-    if (diffInSeconds < 60) {
-      return `${diffInSeconds}s ago`;
-    } else if (diffInSeconds < 3600) {
-      return `${Math.floor(diffInSeconds / 60)}m ago`;
-    } else if (diffInSeconds < 86400) {
-      return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    } else {
-      return `${Math.floor(diffInSeconds / 86400)}d ago`;
+      if (diffInMinutes < 1) return "Just now";
+      if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+      if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+      return `${Math.floor(diffInMinutes / 1440)}d ago`;
+    } catch (error) {
+      console.error("Error formatting time ago:", error);
+      return time.substring(0, 5); // Return HH:MM format as fallback
     }
   };
 
@@ -171,9 +184,16 @@ export default function MyImpactScreen() {
         style: "destructive",
         onPress: async () => {
           try {
-            await clearCurrentUser();
-            // Navigate to landing page (index.tsx)
-            router.replace("/");
+            const result = await logoutUser();
+            if (result.success) {
+              // Navigate to landing page (index.tsx)
+              router.replace("/");
+            } else {
+              Alert.alert(
+                "Error",
+                result.error || "Failed to logout. Please try again."
+              );
+            }
           } catch (error) {
             console.error("Error during logout:", error);
             Alert.alert("Error", "Failed to logout. Please try again.");
@@ -215,23 +235,27 @@ export default function MyImpactScreen() {
                 <View style={styles.avatarContainer}>
                   <View style={styles.avatar}>
                     <Text style={styles.avatarText}>
-                      {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                      {profile?.name
+                        ? profile.name.charAt(0).toUpperCase()
+                        : "U"}
                     </Text>
                   </View>
                 </View>
 
                 {/* User Name */}
-                <Text style={styles.username}>{user?.name || "Username"}</Text>
+                <Text style={styles.username}>
+                  {profile?.name || "Username"}
+                </Text>
 
                 {/* Location */}
                 <View style={styles.locationContainer}>
                   <Text style={styles.locationIcon}>📍</Text>
-                  <Text style={styles.location}>{user?.city || "City"}</Text>
+                  <Text style={styles.location}>{profile?.city || "City"}</Text>
                 </View>
 
                 {/* Points */}
                 <Text style={styles.pointsText}>
-                  {user?.points || 0} Points
+                  {profile?.points || 0} Points
                 </Text>
 
                 {/* See my Incentives Button */}
@@ -292,7 +316,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 10,
   },
   loadingContainer: {
     flex: 1,
@@ -301,8 +325,8 @@ const styles = StyleSheet.create({
   },
   profileContainer: {
     alignItems: "center",
-    paddingVertical: 30,
-    paddingHorizontal: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
   },
   avatarContainer: {
     marginBottom: 16,
@@ -346,7 +370,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   incentivesButton: {
-    backgroundColor: "#666666",
+    backgroundColor: "#002697",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 25,

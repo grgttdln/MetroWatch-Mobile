@@ -35,6 +35,14 @@
         }
       ],
       [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to automatically detect your city for registration.",
+          "locationWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to automatically detect your city for registration.",
+          "isIosBackgroundLocationEnabled": false
+        }
+      ],
+      [
         "expo-media-library",
         {
           "photosPermission": "Allow $(PRODUCT_NAME) to access your photos to save vouchers.",

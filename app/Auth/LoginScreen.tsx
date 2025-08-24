@@ -42,12 +42,15 @@ export default function Login() {
       const result = await loginUser(email, password);
 
       if (result.success) {
+        // Login successful with Supabase Auth
+        console.log("Login successful:", result.user?.email);
         router.replace("/Dashboard/SocialLayerScreen");
         return;
       } else {
         Alert.alert("Error", result.error);
       }
     } catch (error) {
+      console.error("Login error:", error);
       Alert.alert("Error", "Something went wrong. Please try again.");
     } finally {
       setLoading(false);

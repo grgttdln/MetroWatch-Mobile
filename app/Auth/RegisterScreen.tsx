@@ -1,25 +1,27 @@
 import {
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-    useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  useFonts,
 } from "@expo-google-fonts/inter";
+import * as Location from "expo-location";
 import { router } from "expo-router/build/imperative-api";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { registerUser } from "../../services/supabase";
 
@@ -80,45 +82,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333333",
   },
-  pickerContainer: {
-    position: "relative",
-  },
-  dropdownIcon: {
-    position: "absolute",
-    right: 16,
-    top: 16,
-    fontSize: 16,
-    color: "#666666",
-  },
-  cityDropdown: {
-    position: "absolute",
-    top: 88, // Position below the input
-    left: 0,
-    right: 0,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#CCCCCC",
-    borderRadius: 8,
-    zIndex: 1000,
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  cityOption: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEEEEE",
-  },
-  cityOptionText: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 16,
-    color: "#333333",
-  },
+
   loginLinkContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -159,20 +123,125 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     backgroundColor: "#CCCCCC",
   },
+  locationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 56,
+    paddingVertical: 8,
+  },
+  locationTextContainer: {
+    flex: 1,
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+  },
+  locationText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 16,
+    color: "#333333",
+    textAlign: "left",
+    marginLeft: 10,
+  },
+  detectButton: {
+    backgroundColor: "#1A237E",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    position: "absolute",
+    right: 0,
+  },
+  detectButtonText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    color: "#FFFFFF",
+  },
+  locationStatus: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: "#666666",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
 
 export default function RegisterScreen() {
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [city, setCity] = useState("");
-  const [showCityPicker, setShowCityPicker] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  const cities = ["Manila", "Laguna", "Cavite"];
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationPermission, setLocationPermission] = useState<string | null>(
+    null
+  );
+
+  // Get location and detect city automatically
+  const detectLocation = async () => {
+    setLocationLoading(true);
+    try {
+      // Request location permissions
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      setLocationPermission(status);
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Location Permission Required",
+          "Please enable location access to automatically detect your city."
+        );
+        setLocationLoading(false);
+        return;
+      }
+
+      // Get current location
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      // Reverse geocode to get address
+      const reverseGeocode = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (reverseGeocode.length > 0) {
+        const address = reverseGeocode[0];
+        // Use city, or fall back to subregion, region, or district
+        const detectedCity =
+          address.city ||
+          address.subregion ||
+          address.region ||
+          address.district ||
+          "Unknown";
+        setCity(detectedCity);
+        console.log("Detected city:", detectedCity);
+      } else {
+        Alert.alert(
+          "Location Error",
+          "Could not detect your city. Please try again."
+        );
+      }
+    } catch (error) {
+      console.error("Location detection error:", error);
+      Alert.alert(
+        "Location Error",
+        "Failed to detect your location. Please check your GPS settings and try again."
+      );
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  // Auto-detect location on component mount
+  useEffect(() => {
+    detectLocation();
+  }, []);
 
   const handleRegister = async () => {
     // Validation
@@ -195,22 +264,19 @@ export default function RegisterScreen() {
 
     try {
       const result = await registerUser(name, email, mobile, password, city);
-      
+
       if (result.success) {
-        Alert.alert(
-          "Success", 
-          "Registration successful! You can now login.",
-          [
-            {
-              text: "OK",
-              onPress: () => router.push("/Auth/LoginScreen")
-            }
-          ]
-        );
+        Alert.alert("Success", "Registration successful! You can now login.", [
+          {
+            text: "OK",
+            onPress: () => router.push("/Auth/LoginScreen"),
+          },
+        ]);
       } else {
         Alert.alert("Error", result.error);
       }
     } catch (error) {
+      console.error("Registration error:", error);
       Alert.alert("Error", "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
@@ -308,36 +374,58 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Select your City</Text>
-              <TouchableOpacity 
-                style={styles.pickerContainer}
-                onPress={() => setShowCityPicker(!showCityPicker)}
-              >
-                <TextInput
-                  style={styles.input}
-                  placeholder="City"
-                  placeholderTextColor="#A0A0A0"
-                  value={city}
-                  editable={false}
-                />
-                <Text style={styles.dropdownIcon}>▼</Text>
-              </TouchableOpacity>
-              
-              {showCityPicker && (
-                <View style={styles.cityDropdown}>
-                  {cities.map((cityOption) => (
-                    <TouchableOpacity
-                      key={cityOption}
-                      style={styles.cityOption}
-                      onPress={() => {
-                        setCity(cityOption);
-                        setShowCityPicker(false);
-                      }}
-                    >
-                      <Text style={styles.cityOptionText}>{cityOption}</Text>
-                    </TouchableOpacity>
-                  ))}
+              <Text style={styles.inputLabel}>Your City</Text>
+              <View style={styles.input}>
+                <View style={styles.locationContainer}>
+                  {locationLoading ? (
+                    <View style={styles.locationTextContainer}>
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="small" color="#1A237E" />
+                        <Text style={[styles.locationText, { marginLeft: 8 }]}>
+                          Detecting location...
+                        </Text>
+                      </View>
+                    </View>
+                  ) : city ? (
+                    <>
+                      <View style={styles.locationTextContainer}>
+                        <Text style={styles.locationText}>{city}</Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.detectButton}
+                        onPress={detectLocation}
+                      >
+                        <Text style={styles.detectButtonText}>Refresh</Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.locationTextContainer}>
+                        <Text
+                          style={[styles.locationText, { color: "#A0A0A0" }]}
+                        >
+                          Location not detected
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.detectButton}
+                        onPress={detectLocation}
+                      >
+                        <Text style={styles.detectButtonText}>Detect</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </View>
+              </View>
+              {locationPermission === "denied" && (
+                <Text style={styles.locationStatus}>
+                  Location permission denied. Please enable in device settings.
+                </Text>
+              )}
+              {city && !locationLoading && (
+                <Text style={styles.locationStatus}>
+                  ✓ Location detected automatically
+                </Text>
               )}
             </View>
 

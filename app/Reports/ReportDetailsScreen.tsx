@@ -17,7 +17,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import Header from "../../components/Header";
@@ -284,27 +284,26 @@ export default function ReportDetailsScreen() {
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [locationOptions, setLocationOptions] = useState([
     "Manila",
-    "Laguna", 
+    "Laguna",
     "Cavite",
     "Quezon City",
-    "Makati"
+    "Makati",
   ]);
 
   const [category, setCategory] = useState("");
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [categoryOptions, setCategoryOptions] = useState([
-      "Garbage",
-      "Traffic",
-      "Flooding",
-      "Vandalism",
-      "Noise Pollution",
-      "Road Damage",
-      "Illegal Parking",
-      "Street Lighting",
-      "Stray Animals",
-      "Others",
-    ]);
-
+    "Garbage",
+    "Traffic",
+    "Flooding",
+    "Vandalism",
+    "Noise Pollution",
+    "Road Damage",
+    "Illegal Parking",
+    "Street Lighting",
+    "Stray Animals",
+    "Others",
+  ]);
 
   const [description, setDescription] = useState("");
 
@@ -321,7 +320,7 @@ export default function ReportDetailsScreen() {
         const images = JSON.parse(params.images as string);
         setSelectedImages(images);
       } catch (error) {
-        console.error('Error parsing images:', error);
+        console.error("Error parsing images:", error);
       }
     }
   }, [params.images]);
@@ -329,7 +328,6 @@ export default function ReportDetailsScreen() {
   if (!fontsLoaded) {
     return null;
   }
-
 
   // Helper function to get category icons
   const getCategoryIcon = (category: string) => {
@@ -359,7 +357,7 @@ export default function ReportDetailsScreen() {
 
     const formattedDate = date.toLocaleDateString("en-US", {
       month: "long",
-      day: "numeric", 
+      day: "numeric",
       year: "numeric",
     });
     setDate(formattedDate);
@@ -379,89 +377,104 @@ export default function ReportDetailsScreen() {
   };
 
   const handleSendReport = async () => {
-    console.log('🚀 Starting report submission...');
-    console.log('📋 Form validation...');
-    
+    console.log("🚀 Starting report submission...");
+    console.log("📋 Form validation...");
+
     // Validate required fields
     if (!date || !time || !location || !category || !description) {
-      console.log('❌ Validation failed - missing fields');
-      Alert.alert('Error', 'Please fill in all fields');
+      console.log("❌ Validation failed - missing fields");
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
-    
+
     // Validate required images (URL field is NOT NULL in new schema)
     if (!selectedImages || selectedImages.length === 0) {
-      console.log('❌ Validation failed - no images selected');
-      Alert.alert('Error', 'At least one image is required to create a report');
+      console.log("❌ Validation failed - no images selected");
+      Alert.alert("Error", "At least one image is required to create a report");
       return;
     }
-    
-    console.log('✅ Form validation passed');
+
+    console.log("✅ Form validation passed");
 
     setIsSubmitting(true);
-    console.log('📤 Setting submission state to true');
-    
+    console.log("📤 Setting submission state to true");
+
     try {
-      console.log('📷 Starting image upload process...');
-      console.log('🖼️ Number of images to upload:', selectedImages.length);
-      
+      console.log("📷 Starting image upload process...");
+      console.log("🖼️ Number of images to upload:", selectedImages.length);
+
       // Upload images first
       const imageUrls = [];
       for (let i = 0; i < selectedImages.length; i++) {
         const image = selectedImages[i];
-        console.log(`📸 Uploading image ${i + 1}/${selectedImages.length}:`, image.name);
-        console.log('📍 Image location data:', { 
-          latitude: image.latitude, 
-          longitude: image.longitude 
+        console.log(
+          `📸 Uploading image ${i + 1}/${selectedImages.length}:`,
+          image.name
+        );
+        console.log("📍 Image location data:", {
+          latitude: image.latitude,
+          longitude: image.longitude,
         });
-        
+
         const uploadResult = await uploadImage(image.uri, image.name);
         if (uploadResult.success) {
-          console.log(`✅ Image ${i + 1} uploaded successfully:`, uploadResult.url);
+          console.log(
+            `✅ Image ${i + 1} uploaded successfully:`,
+            uploadResult.url
+          );
           imageUrls.push(uploadResult.url);
         } else {
-          console.error(`❌ Failed to upload image ${i + 1}:`, uploadResult.error);
-          Alert.alert('Error', `Failed to upload image: ${uploadResult.error}`);
+          console.error(
+            `❌ Failed to upload image ${i + 1}:`,
+            uploadResult.error
+          );
+          Alert.alert("Error", `Failed to upload image: ${uploadResult.error}`);
           setIsSubmitting(false);
           return;
         }
       }
-      console.log('📷 All images uploaded successfully!');
-      console.log('🔗 Image URLs:', imageUrls);
+      console.log("📷 All images uploaded successfully!");
+      console.log("🔗 Image URLs:", imageUrls);
 
       // Get location data from the first image (if available)
       const firstImage = selectedImages[0];
       let geotag = null;
-      
+
       if (firstImage?.latitude && firstImage?.longitude) {
         geotag = `${firstImage.latitude},${firstImage.longitude}`;
-        console.log('📍 Geotag created:', geotag);
+        console.log("📍 Geotag created:", geotag);
       } else {
-        console.log('📍 No location data available');
+        console.log("📍 No location data available");
       }
 
-      console.log('📊 Creating report data object...');
+      console.log("📊 Creating report data object...");
       // Create report data
       const reportData = {
-        date: selectedDate ? selectedDate.toISOString().split('T')[0] : null,
-        time: selectedTime ? selectedTime.toTimeString().split(' ')[0] : null,
+        date: selectedDate ? selectedDate.toISOString().split("T")[0] : null,
+        time: selectedTime ? selectedTime.toTimeString().split(" ")[0] : null,
         location,
         category,
         description,
-        url: imageUrls.join(','),
+        url: imageUrls.join(","),
         latitude: firstImage?.latitude?.toString() || null,
-        longitude: firstImage?.longitude?.toString() || null
+        longitude: firstImage?.longitude?.toString() || null,
+        upvote: 0,
+        downvote: 0,
+        severity: "Low",
       };
-      
-      console.log('📋 Final report data to submit:', JSON.stringify(reportData, null, 2));
 
-      console.log('💾 Submitting report to database...');
+      console.log(
+        "📋 Final report data to submit:",
+        JSON.stringify(reportData, null, 2)
+      );
+
+      console.log("💾 Submitting report to database...");
       const result = await createReport(reportData);
-      
+
       if (result.success) {
-        console.log('🎉 Report submission successful!');
-        console.log('📄 Submitted report:', result.report);
-        
+        console.log("🎉 Report submission successful!");
+        console.log("📄 Submitted report:", result.report);
+
         // Reset form data
         setSelectedImages([]);
         setSelectedDate(null);
@@ -471,25 +484,33 @@ export default function ReportDetailsScreen() {
         setLocation("");
         setCategory("");
         setDescription("");
-        
-        Alert.alert('Success', 'Report submitted successfully!', [
-          { text: 'OK', onPress: () => {
-            console.log("Report sent:", reportData);
-            router.push("/Dashboard/SocialLayerScreen");
-          }}
+
+        Alert.alert("Success", "Report submitted successfully!", [
+          {
+            text: "OK",
+            onPress: () => {
+              console.log("Report sent:", reportData);
+              router.push("/Dashboard/SocialLayerScreen");
+            },
+          },
         ]);
       } else {
-        console.error('❌ Report submission failed:', result.error);
-        Alert.alert('Error', `Failed to submit report: ${result.error}`);
+        console.error("❌ Report submission failed:", result.error);
+        Alert.alert("Error", `Failed to submit report: ${result.error}`);
       }
     } catch (error) {
-      console.error('💥 Unexpected error in handleSendReport:', error);
+      console.error("💥 Unexpected error in handleSendReport:", error);
       if (error instanceof Error) {
-        console.error('Error stack:', error.stack);
+        console.error("Error stack:", error.stack);
       }
-      Alert.alert('Error', `An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      Alert.alert(
+        "Error",
+        `An error occurred: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
-      console.log('🔄 Resetting submission state...');
+      console.log("🔄 Resetting submission state...");
       setIsSubmitting(false);
     }
   };
@@ -582,7 +603,7 @@ export default function ReportDetailsScreen() {
 
               {showLocationDropdown && (
                 <View style={styles.dropdownList}>
-                  <ScrollView 
+                  <ScrollView
                     style={{ maxHeight: 180 }}
                     showsVerticalScrollIndicator={true}
                     nestedScrollEnabled={true}
@@ -664,7 +685,7 @@ export default function ReportDetailsScreen() {
 
               {showCategoryDropdown && (
                 <View style={styles.dropdownList}>
-                  <ScrollView 
+                  <ScrollView
                     style={{ maxHeight: 180 }}
                     showsVerticalScrollIndicator={true}
                     nestedScrollEnabled={true}
@@ -746,7 +767,7 @@ export default function ReportDetailsScreen() {
             disabled={isSubmitting}
           >
             <Text style={styles.sendButtonText}>
-              {isSubmitting ? 'Submitting...' : 'Send Report'}
+              {isSubmitting ? "Submitting..." : "Send Report"}
             </Text>
           </TouchableOpacity>
         </ScrollView>

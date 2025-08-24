@@ -14,16 +14,11 @@ import {
 import Header from "../../components/Header";
 import IncentiveItem from "../../components/IncentiveItem";
 import AppTabs from "../../navigation/AppTabs";
-import {
-  fetchUserById,
-  getCurrentUser,
-  updateUserPoints,
-} from "../../services/supabase";
+import { getCurrentProfile, updateUserPoints } from "../../services/supabase";
 
-interface User {
-  id: number;
+interface Profile {
+  id: string;
   name: string;
-  email: string;
   mobile: string;
   city: string;
   points: number;
@@ -40,7 +35,7 @@ interface Incentive {
 
 export default function IncentiveCollectionScreen() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const incentives: Incentive[] = [
@@ -60,21 +55,14 @@ export default function IncentiveCollectionScreen() {
 
   const fetchUserData = async () => {
     try {
-      const currentUser = await getCurrentUser();
-      console.log("Current user from storage:", currentUser);
+      const currentProfile = await getCurrentProfile();
+      console.log("Current profile:", currentProfile);
 
-      if (currentUser && currentUser.id) {
-        console.log("Fetching fresh user data for ID:", currentUser.id);
-        const result = await fetchUserById(currentUser.id);
-
-        if (result.success) {
-          console.log("Fresh user data:", result.user);
-          setUser(result.user);
-        } else {
-          console.error("Error fetching user data:", result.error);
-        }
+      if (currentProfile) {
+        console.log("Profile data:", currentProfile);
+        setProfile(currentProfile);
       } else {
-        console.log("No current user found");
+        console.log("No current profile found");
       }
     } catch (error) {
       console.error("Error in fetchUserData:", error);
@@ -92,9 +80,9 @@ export default function IncentiveCollectionScreen() {
   };
 
   const handleRedeem = async (incentive: Incentive) => {
-    if (!user) return;
+    if (!profile) return;
 
-    if (user.points >= incentive.pointsRequired) {
+    if (profile.points >= incentive.pointsRequired) {
       Alert.alert(
         "Redeem Incentive",
         `Are you sure you want to redeem ${incentive.title} for ${incentive.pointsRequired} points?`,
@@ -108,23 +96,23 @@ export default function IncentiveCollectionScreen() {
             onPress: async () => {
               try {
                 console.log(
-                  "Starting redemption for user:",
-                  user.id,
+                  "Starting redemption for profile:",
+                  profile.id,
                   "Current points:",
-                  user.points,
+                  profile.points,
                   "Required:",
                   incentive.pointsRequired
                 );
-                const newPoints = user.points - incentive.pointsRequired;
+                const newPoints = profile.points - incentive.pointsRequired;
                 console.log("Calculated new points:", newPoints);
 
-                const result = await updateUserPoints(user.id, newPoints);
+                const result = await updateUserPoints(profile.id, newPoints);
 
                 if (result.success) {
                   console.log(
                     "Points updated successfully, navigating to claim screen"
                   );
-                  setUser(result.user);
+                  setProfile(result.profile);
 
                   router.push({
                     pathname: "/Incentives/IncentiveClaimScreen",
@@ -166,7 +154,7 @@ export default function IncentiveCollectionScreen() {
       Alert.alert(
         "Insufficient Points",
         `You need ${
-          incentive.pointsRequired - user.points
+          incentive.pointsRequired - profile.points
         } more points to redeem this incentive.`
       );
     }
@@ -191,7 +179,9 @@ export default function IncentiveCollectionScreen() {
           <View style={styles.pointsBadgeContainer}>
             <View style={styles.pointsBadge}>
               <Text style={styles.pointsBadgeText}>
-                {loading ? "Loading..." : `${user?.points || 0} Total Points`}
+                {loading
+                  ? "Loading..."
+                  : `${profile?.points || 0} Total Points`}
               </Text>
             </View>
           </View>
@@ -210,7 +200,7 @@ export default function IncentiveCollectionScreen() {
                   key={incentive.id}
                   title={incentive.title}
                   pointsRequired={incentive.pointsRequired}
-                  userPoints={user?.points || 0}
+                  userPoints={profile?.points || 0}
                   image={incentive.image}
                   onRedeem={() => handleRedeem(incentive)}
                 />
