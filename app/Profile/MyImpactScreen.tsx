@@ -296,7 +296,8 @@ export default function MyImpactScreen() {
                 item={item}
                 onUpvote={handleUpvote}
                 onDownvote={handleDownvote}
-                showVoting={false} // Don't show voting for user's own reports
+                showVoting={true}
+                readOnly={true} // Show vote counts but disable voting for user's own reports
               />
             </View>
           )}

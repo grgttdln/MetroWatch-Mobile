@@ -1,12 +1,6 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
-import {
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface Report {
   report_id: number;
@@ -23,7 +17,7 @@ interface Report {
   timeAgo: string;
   displayName: string;
   isCurrentUser: boolean;
-  userVote: 'upvote' | 'downvote' | null;
+  userVote: "upvote" | "downvote" | null;
   status: string;
   users: {
     name: string;
@@ -36,20 +30,22 @@ interface ReportCardProps {
   onUpvote?: (reportId: number) => void;
   onDownvote?: (reportId: number) => void;
   showVoting?: boolean; // Option to show/hide voting buttons
+  readOnly?: boolean; // Option to show vote counts but disable voting
 }
 
 const severityColors: { [key: string]: string } = {
   Low: "#4CAF50",
-  Medium: "#FF9800", 
+  Medium: "#FF9800",
   High: "#FF5722",
-  Critical: "#F44336"
+  Critical: "#F44336",
 };
 
-export default function ReportCard({ 
-  item, 
-  onUpvote, 
-  onDownvote, 
-  showVoting = true 
+export default function ReportCard({
+  item,
+  onUpvote,
+  onDownvote,
+  showVoting = true,
+  readOnly = false,
 }: ReportCardProps) {
   return (
     <View style={styles.reportCard}>
@@ -62,10 +58,12 @@ export default function ReportCard({
           </View>
         </View>
         <View style={styles.userInfo}>
-          <Text style={[
-            styles.userName, 
-            item.isCurrentUser && styles.currentUserName
-          ]}>
+          <Text
+            style={[
+              styles.userName,
+              item.isCurrentUser && styles.currentUserName,
+            ]}
+          >
             {item.displayName}
           </Text>
           <Text style={styles.timeAgo}>{item.timeAgo}</Text>
@@ -73,8 +71,8 @@ export default function ReportCard({
       </View>
 
       {item.url && (
-        <Image 
-          source={{ uri: item.url }} 
+        <Image
+          source={{ uri: item.url }}
           style={styles.reportImage}
           resizeMode="cover"
         />
@@ -83,68 +81,92 @@ export default function ReportCard({
       <Text style={styles.description}>{item.description}</Text>
 
       <View style={styles.tagsContainer}>
-        <View style={styles.categoryTag}>
-          <Text style={styles.categoryTagText}>
-            {item.category}
-          </Text>
+        <View
+          style={[
+            styles.severityTag,
+            { backgroundColor: severityColors[item.severity] },
+          ]}
+        >
+          <Text style={styles.severityTagText}>{item.severity}</Text>
         </View>
-        <View style={[styles.severityTag, { backgroundColor: severityColors[item.severity] }]}>
-          <Text style={styles.severityTagText}>
-            {item.severity}
-          </Text>
-        </View>
-        <View style={[
-          styles.statusTag, 
-          { backgroundColor: item.status === 'Resolved' ? '#4CAF50' : '#FF9800' }
-        ]}>
-          <Text style={styles.statusTagText}>
-            {item.status}
-          </Text>
+        <View
+          style={[
+            styles.statusTag,
+            {
+              backgroundColor:
+                item.status === "Resolved" ? "#4CAF50" : "#FF9800",
+            },
+          ]}
+        >
+          <Text style={styles.statusTagText}>{item.status}</Text>
         </View>
       </View>
 
       {showVoting && (
         <View style={styles.actionsContainer}>
           <View style={styles.voteButtonsContainer}>
-            <TouchableOpacity 
-              style={[
-                styles.voteButton,
-                item.userVote === 'upvote' && styles.activeUpvoteButton
-              ]}
-              onPress={() => onUpvote?.(item.report_id)}
-            >
-              <MaterialIcons 
-                name="thumb-up" 
-                size={18} 
-                color={item.userVote === 'upvote' ? "#fff" : "#4CAF50"} 
-              />
-              <Text style={[
-                styles.voteButtonText,
-                item.userVote === 'upvote' && styles.activeVoteButtonText
-              ]}>
-                {item.upvote || 0}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.voteButton,
-                item.userVote === 'downvote' && styles.activeDownvoteButton
-              ]}
-              onPress={() => onDownvote?.(item.report_id)}
-            >
-              <MaterialIcons 
-                name="thumb-down" 
-                size={18} 
-                color={item.userVote === 'downvote' ? "#fff" : "#F44336"} 
-              />
-              <Text style={[
-                styles.voteButtonText,
-                item.userVote === 'downvote' && styles.activeVoteButtonText
-              ]}>
-                {item.downvote || 0}
-              </Text>
-            </TouchableOpacity>
+            {readOnly ? (
+              // Read-only view - display as simple info without button styling
+              <>
+                <View style={styles.voteInfo}>
+                  <MaterialIcons name="thumb-up" size={18} color="#4CAF50" />
+                  <Text style={styles.voteInfoText}>{item.upvote || 0}</Text>
+                </View>
+
+                <View style={styles.voteInfo}>
+                  <MaterialIcons name="thumb-down" size={18} color="#F44336" />
+                  <Text style={styles.voteInfoText}>{item.downvote || 0}</Text>
+                </View>
+              </>
+            ) : (
+              // Interactive buttons for voting
+              <>
+                <TouchableOpacity
+                  style={[
+                    styles.voteButton,
+                    item.userVote === "upvote" && styles.activeUpvoteButton,
+                  ]}
+                  onPress={() => onUpvote?.(item.report_id)}
+                >
+                  <MaterialIcons
+                    name="thumb-up"
+                    size={18}
+                    color={item.userVote === "upvote" ? "#fff" : "#4CAF50"}
+                  />
+                  <Text
+                    style={[
+                      styles.voteButtonText,
+                      item.userVote === "upvote" && styles.activeVoteButtonText,
+                    ]}
+                  >
+                    {item.upvote || 0}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.voteButton,
+                    item.userVote === "downvote" && styles.activeDownvoteButton,
+                  ]}
+                  onPress={() => onDownvote?.(item.report_id)}
+                >
+                  <MaterialIcons
+                    name="thumb-down"
+                    size={18}
+                    color={item.userVote === "downvote" ? "#fff" : "#F44336"}
+                  />
+                  <Text
+                    style={[
+                      styles.voteButtonText,
+                      item.userVote === "downvote" &&
+                        styles.activeVoteButtonText,
+                    ]}
+                  >
+                    {item.downvote || 0}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       )}
@@ -229,17 +251,7 @@ const styles = StyleSheet.create({
     gap: 8,
     flexWrap: "wrap",
   },
-  categoryTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: "#E3F2FD",
-  },
-  categoryTagText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#1976D2",
-  },
+
   severityTag: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -295,5 +307,17 @@ const styles = StyleSheet.create({
   },
   activeVoteButtonText: {
     color: "#fff",
+  },
+  voteInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  voteInfoText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
   },
 });
