@@ -71,11 +71,60 @@ export default function ReportCard({
       </View>
 
       {item.url && (
-        <Image
-          source={{ uri: item.url }}
-          style={styles.reportImage}
-          resizeMode="cover"
-        />
+        <View style={styles.imagesContainer}>
+          {(() => {
+            const imageUrls = item.url
+              .split(",")
+              .filter((url) => url.trim() !== "");
+
+            if (imageUrls.length === 1) {
+              return (
+                <Image
+                  source={{ uri: imageUrls[0].trim() }}
+                  style={styles.singleImage}
+                  resizeMode="cover"
+                />
+              );
+            } else if (imageUrls.length === 2) {
+              return (
+                <View style={styles.twoImagesContainer}>
+                  {imageUrls.map((url, index) => (
+                    <Image
+                      key={index}
+                      source={{ uri: url.trim() }}
+                      style={styles.doubleImage}
+                      resizeMode="cover"
+                    />
+                  ))}
+                </View>
+              );
+            } else if (imageUrls.length === 3) {
+              return (
+                <View style={styles.threeImagesContainer}>
+                  <Image
+                    source={{ uri: imageUrls[0].trim() }}
+                    style={styles.primaryImage}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.secondaryImagesContainer}>
+                    <Image
+                      source={{ uri: imageUrls[1].trim() }}
+                      style={styles.secondaryImage}
+                      resizeMode="cover"
+                    />
+                    <Image
+                      source={{ uri: imageUrls[2].trim() }}
+                      style={styles.secondaryImage}
+                      resizeMode="cover"
+                    />
+                  </View>
+                </View>
+              );
+            }
+
+            return null;
+          })()}
+        </View>
       )}
 
       <Text style={styles.description}>{item.description}</Text>
@@ -232,11 +281,43 @@ const styles = StyleSheet.create({
     color: "#666",
     marginTop: 2,
   },
-  reportImage: {
+  imagesContainer: {
+    marginBottom: 16,
+  },
+  singleImage: {
     width: "100%",
     height: 220,
     borderRadius: 12,
-    marginBottom: 16,
+    backgroundColor: "#F5F5F5",
+  },
+  twoImagesContainer: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  doubleImage: {
+    flex: 1,
+    height: 180,
+    borderRadius: 12,
+    backgroundColor: "#F5F5F5",
+  },
+  threeImagesContainer: {
+    flexDirection: "row",
+    gap: 8,
+    height: 180,
+  },
+  primaryImage: {
+    flex: 2,
+    height: "100%",
+    borderRadius: 12,
+    backgroundColor: "#F5F5F5",
+  },
+  secondaryImagesContainer: {
+    flex: 1,
+    gap: 8,
+  },
+  secondaryImage: {
+    flex: 1,
+    borderRadius: 12,
     backgroundColor: "#F5F5F5",
   },
   description: {

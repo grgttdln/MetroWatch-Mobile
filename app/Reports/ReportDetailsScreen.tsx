@@ -214,6 +214,28 @@ const styles = StyleSheet.create({
     color: "#333333",
     textAlignVertical: "top",
   },
+  readOnlyField: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 56,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#F8F9FF",
+  },
+  readOnlyFieldIcon: {
+    fontSize: 16,
+    marginRight: 12,
+    color: "#1A237E",
+  },
+  readOnlyFieldText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 16,
+    color: "#1A237E",
+    flex: 1,
+  },
   sendButton: {
     backgroundColor: "#1A237E",
     borderRadius: 8,
@@ -271,6 +293,10 @@ export default function ReportDetailsScreen() {
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Get the selected category from params
+  const selectedCategoryId = params.selectedCategory as string;
+  const selectedCategoryName = params.categoryName as string;
+
   // Date and time state
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<Date | null>(null);
@@ -290,20 +316,8 @@ export default function ReportDetailsScreen() {
     "Makati",
   ]);
 
-  const [category, setCategory] = useState("");
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-  const [categoryOptions, setCategoryOptions] = useState([
-    "Garbage",
-    "Traffic",
-    "Flooding",
-    "Vandalism",
-    "Noise Pollution",
-    "Road Damage",
-    "Illegal Parking",
-    "Street Lighting",
-    "Stray Animals",
-    "Others",
-  ]);
+  // Category is now passed from previous screen
+  const category = selectedCategoryName || "";
 
   const [description, setDescription] = useState("");
 
@@ -332,6 +346,16 @@ export default function ReportDetailsScreen() {
   // Helper function to get category icons
   const getCategoryIcon = (category: string) => {
     const iconMap: { [key: string]: string } = {
+      "Uncollected Garbage": "🗑️",
+      "Damaged or Open Drainage/Canals": "🕳️",
+      "Damaged or Obstructed Sidewalks": "🚶",
+      "Broken Street Lights": "💡",
+      "Blocked Bike Lanes": "🚴",
+      "Bark Street": "🐕",
+      "Dangling Electrical Wires": "⚡",
+      "Public Transport": "🚌",
+      Others: "📋",
+      // Legacy mappings for backward compatibility
       Garbage: "🗑️",
       Traffic: "🚦",
       Flooding: "🌊",
@@ -341,7 +365,6 @@ export default function ReportDetailsScreen() {
       "Illegal Parking": "🚗",
       "Street Lighting": "💡",
       "Stray Animals": "🐶",
-      Others: "📋",
     };
     return iconMap[category] || "📋";
   };
@@ -482,7 +505,6 @@ export default function ReportDetailsScreen() {
         setDate("");
         setTime("");
         setLocation("");
-        setCategory("");
         setDescription("");
 
         Alert.alert("Success", "Report submitted successfully!", [
@@ -664,84 +686,12 @@ export default function ReportDetailsScreen() {
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>Category</Text>
-              <TouchableOpacity
-                onPress={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                style={styles.dropdownButton}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={
-                    category
-                      ? styles.dropdownButtonText
-                      : styles.dropdownButtonPlaceholder
-                  }
-                >
-                  {category || "Select category"}
+              <View style={styles.readOnlyField}>
+                <Text style={styles.readOnlyFieldIcon}>
+                  {getCategoryIcon(category)}
                 </Text>
-                <Text style={styles.dropdownIcon}>
-                  {showCategoryDropdown ? "▲" : "▼"}
-                </Text>
-              </TouchableOpacity>
-
-              {showCategoryDropdown && (
-                <View style={styles.dropdownList}>
-                  <ScrollView
-                    style={{ maxHeight: 180 }}
-                    showsVerticalScrollIndicator={true}
-                    nestedScrollEnabled={true}
-                  >
-                    {categoryOptions.map((item, index) => {
-                      const isSelected = category === item;
-                      const isLast = index === categoryOptions.length - 1;
-
-                      let itemStyle;
-                      if (isSelected && isLast) {
-                        itemStyle = styles.dropdownItemSelectedLast;
-                      } else if (isSelected) {
-                        itemStyle = styles.dropdownItemSelected;
-                      } else if (isLast) {
-                        itemStyle = styles.dropdownItemLast;
-                      } else {
-                        itemStyle = styles.dropdownItem;
-                      }
-
-                      return (
-                        <TouchableOpacity
-                          key={item}
-                          style={itemStyle}
-                          onPress={() => {
-                            setCategory(item);
-                            setShowCategoryDropdown(false);
-                          }}
-                          activeOpacity={0.8}
-                        >
-                          <Text
-                            style={
-                              isSelected
-                                ? styles.dropdownItemPrefixSelected
-                                : styles.dropdownItemPrefix
-                            }
-                          >
-                            {getCategoryIcon(item)}
-                          </Text>
-                          <Text
-                            style={
-                              isSelected
-                                ? styles.dropdownItemTextSelected
-                                : styles.dropdownItemText
-                            }
-                          >
-                            {item}
-                          </Text>
-                          {isSelected && (
-                            <Text style={styles.dropdownItemIcon}>✓</Text>
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-              )}
+                <Text style={styles.readOnlyFieldText}>{category}</Text>
+              </View>
             </View>
 
             <View style={styles.formGroup}>

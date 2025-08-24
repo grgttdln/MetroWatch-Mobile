@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import Header from "../../components/Header";
 import IncentiveItem from "../../components/IncentiveItem";
-import AppTabs from "../../navigation/AppTabs";
 import { getCurrentProfile, updateUserPoints } from "../../services/supabase";
 
 interface Profile {
@@ -50,6 +49,11 @@ export default function IncentiveCollectionScreen() {
       title: "1-pc Chickenjoy",
       pointsRequired: 75,
       image: require("../../assets/images/incentives/chickenjoy.jpg"),
+    },
+    {
+      id: "3",
+      title: "Free Coffee for a Month",
+      pointsRequired: 50,
     },
   ];
 
@@ -188,6 +192,7 @@ export default function IncentiveCollectionScreen() {
 
           <ScrollView
             style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
             {loading ? (
@@ -208,7 +213,6 @@ export default function IncentiveCollectionScreen() {
             )}
           </ScrollView>
         </View>
-        <AppTabs />
       </View>
     </SafeAreaView>
   );
@@ -222,13 +226,13 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 20,
+    paddingTop: 5,
   },
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 5,
     paddingHorizontal: 4,
   },
   backButton: {
@@ -242,14 +246,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   placeholder: {
-    width: 40, // Same width as back button to center the title
+    width: 40,
   },
   pointsBadgeContainer: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   pointsBadge: {
-    backgroundColor: "#1E3A8A",
+    backgroundColor: "#002697",
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 20,
@@ -261,6 +265,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   loadingContainer: {
     flex: 1,

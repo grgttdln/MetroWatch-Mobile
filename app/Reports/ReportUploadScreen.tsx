@@ -6,7 +6,7 @@ import {
 } from "@expo-google-fonts/inter";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import {
@@ -194,8 +194,14 @@ const styles = StyleSheet.create({
 });
 
 export default function ReportUploadScreen() {
+  const params = useLocalSearchParams();
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
-  const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null);
+  const [currentLocation, setCurrentLocation] =
+    useState<Location.LocationObject | null>(null);
+
+  // Get the selected category from params
+  const selectedCategory = params.selectedCategory as string;
+  const categoryName = params.categoryName as string;
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -218,27 +224,30 @@ export default function ReportUploadScreen() {
   const requestLocationPermission = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
+      if (status === "granted") {
         const location = await Location.getCurrentPositionAsync({});
         setCurrentLocation(location);
       } else {
-        Alert.alert('Location Permission', 'Location permission is required to capture GPS coordinates with photos.');
+        Alert.alert(
+          "Location Permission",
+          "Location permission is required to capture GPS coordinates with photos."
+        );
       }
     } catch (error) {
-      console.error('Error requesting location permission:', error);
+      console.error("Error requesting location permission:", error);
     }
   };
 
   const getCurrentLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
+      if (status === "granted") {
         const location = await Location.getCurrentPositionAsync({});
         return location;
       }
       return null;
     } catch (error) {
-      console.error('Error getting current location:', error);
+      console.error("Error getting current location:", error);
       return null;
     }
   };
@@ -385,7 +394,7 @@ export default function ReportUploadScreen() {
       <View style={styles.titleContainer}>
         <View style={styles.leftSection}>
           <TouchableOpacity
-            onPress={() => router.push("/Dashboard/SocialLayerScreen")}
+            onPress={() => router.push("/Reports/ReportCategoryScreen")}
             style={styles.backButton}
           >
             <Text style={styles.backButtonText}>←</Text>
@@ -443,25 +452,33 @@ export default function ReportUploadScreen() {
           </View>
         ))}
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            styles.continueButton, 
-            selectedImages.length === 0 && styles.continueButtonDisabled
-          ]} 
+            styles.continueButton,
+            selectedImages.length === 0 && styles.continueButtonDisabled,
+          ]}
           onPress={() => {
             if (selectedImages.length > 0) {
               router.push({
                 pathname: "/Reports/ReportDetailsScreen",
-                params: { images: JSON.stringify(selectedImages) }
-              })
+                params: {
+                  images: JSON.stringify(selectedImages),
+                  selectedCategory: selectedCategory,
+                  categoryName: categoryName,
+                },
+              });
             }
           }}
           disabled={selectedImages.length === 0}
         >
-          <Text style={[
-            styles.continueButtonText,
-            selectedImages.length === 0 && styles.continueButtonTextDisabled
-          ]}>Continue</Text>
+          <Text
+            style={[
+              styles.continueButtonText,
+              selectedImages.length === 0 && styles.continueButtonTextDisabled,
+            ]}
+          >
+            Continue
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

@@ -71,7 +71,7 @@ const AppTabs = () => {
               isActive("Reports") && styles.disabledElevatedButton,
             ]}
             onPress={() =>
-              navigateToScreen("/Reports/ReportUploadScreen", "Reports")
+              navigateToScreen("/Reports/ReportCategoryScreen", "Reports")
             }
             disabled={isActive("Reports")}
             activeOpacity={isActive("Reports") ? 1 : 0.7}

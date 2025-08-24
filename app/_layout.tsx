@@ -2,67 +2,81 @@ import { Stack } from "expo-router";
 
 export default function RootLayout() {
   return (
-    <Stack 
-      screenOptions={{ 
+    <Stack
+      screenOptions={{
         headerShown: false,
-        animation: 'fade',
+        animation: "fade",
         animationDuration: 300,
       }}
     >
-      <Stack.Screen 
-        name="index" 
-        options={{ 
+      <Stack.Screen
+        name="index"
+        options={{
           headerShown: false,
-          animation: 'fade',
-        }} 
+          animation: "fade",
+        }}
       />
-      <Stack.Screen 
-        name="Auth/LoginScreen" 
-        options={{ 
+      <Stack.Screen
+        name="Auth/LoginScreen"
+        options={{
           headerShown: false,
-          animation: 'fade',
-        }} 
+          animation: "fade",
+        }}
       />
       <Stack.Screen
         name="Auth/RegisterScreen"
-        options={{ 
+        options={{
           headerShown: false,
-          animation: 'fade',
+          animation: "fade",
         }}
       />
       <Stack.Screen
         name="Dashboard/SocialLayerScreen"
-        options={{ 
+        options={{
           headerShown: false,
-          animation: 'fade',
+          animation: "fade",
+        }}
+      />
+      <Stack.Screen
+        name="Reports/ReportCategoryScreen"
+        options={{
+          headerShown: false,
+          animation: "fade",
         }}
       />
       <Stack.Screen
         name="Reports/ReportUploadScreen"
-        options={{ 
+        options={{
           headerShown: false,
-          animation: 'fade',
+          animation: "fade",
+        }}
+      />
+      <Stack.Screen
+        name="Reports/ReportDetailsScreen"
+        options={{
+          headerShown: false,
+          animation: "fade",
         }}
       />
       <Stack.Screen
         name="Profile/MyImpactScreen"
-        options={{ 
+        options={{
           headerShown: false,
-          animation: 'fade',
+          animation: "fade",
         }}
       />
       <Stack.Screen
         name="Incentives/IncentiveClaimScreen"
-        options={{ 
+        options={{
           headerShown: false,
-          animation: 'fade',
+          animation: "fade",
         }}
       />
       <Stack.Screen
         name="Incentives/IncentiveCollectionScreen"
-        options={{ 
+        options={{
           headerShown: false,
-          animation: 'fade',
+          animation: "fade",
         }}
       />
     </Stack>
