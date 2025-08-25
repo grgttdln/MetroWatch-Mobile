@@ -59,14 +59,14 @@ export default function RootLayout() {
         }}
       />
       <Stack.Screen
-        name="Reports/ReportDetailsScreen"
+        name="Profile/MyImpactScreen"
         options={{
           headerShown: false,
           animation: "fade",
         }}
       />
       <Stack.Screen
-        name="Profile/MyImpactScreen"
+        name="Reports/ReportDetailsScreen"
         options={{
           headerShown: false,
           animation: "fade",

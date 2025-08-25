@@ -511,6 +511,8 @@ export default function ReportUploadScreen() {
         upvote: 0,
         downvote: 0,
         severity: "Low",
+        status: "Under Review", // Set initial status to Under Review
+        under_review_at: now.toISOString(), // Set timestamp for initial Under Review status
       };
 
       console.log(

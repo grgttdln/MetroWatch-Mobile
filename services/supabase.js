@@ -823,7 +823,7 @@ export const getCommunityReports = async () => {
           displayName,
           isCurrentUser,
           userVote: userVoteType,
-          status: report.status || "Not Resolved", // Default status
+          status: report.status || "Under Review", // Default status
           // Format time for display
           timeAgo: formatTimeAgo(report.date, report.time),
         };
@@ -1113,6 +1113,141 @@ export const updateExistingReportsSeverity = async () => {
     return { success: true, updated: reports.length };
   } catch (error) {
     console.error("Error in updateExistingReportsSeverity:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Update report status
+export const updateReportStatus = async (reportId, newStatus) => {
+  try {
+    console.log(
+      "Updating report status for reportId:",
+      reportId,
+      "New status:",
+      newStatus
+    );
+
+    const { data, error } = await supabase
+      .from("reports")
+      .update({
+        status: newStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("report_id", reportId)
+      .select("*");
+
+    if (error) {
+      console.error("Error updating report status:", error);
+      return { success: false, error: error.message };
+    }
+
+    if (!data || data.length === 0) {
+      console.error("No rows updated - report not found");
+      return { success: false, error: "Report not found" };
+    }
+
+    console.log("Report status updated successfully:", data[0]);
+    return { success: true, report: data[0] };
+  } catch (error) {
+    console.error("Error in updateReportStatus:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Update report confirmation (for user confirmation of resolution)
+export const updateReportConfirmation = async (reportId, confirmed) => {
+  try {
+    console.log(
+      "Updating report confirmation for reportId:",
+      reportId,
+      "Confirmed:",
+      confirmed
+    );
+
+    const { data, error } = await supabase
+      .from("reports")
+      .update({
+        confirmed: confirmed,
+        confirmed_updated_at: new Date().toISOString(),
+      })
+      .eq("report_id", reportId)
+      .select("*");
+
+    if (error) {
+      console.error("Error updating report confirmation:", error);
+      return { success: false, error: error.message };
+    }
+
+    if (!data || data.length === 0) {
+      console.error("No rows updated - report not found");
+      return { success: false, error: "Report not found" };
+    }
+
+    console.log("Report confirmation updated successfully:", data[0]);
+    return { success: true, report: data[0] };
+  } catch (error) {
+    console.error("Error in updateReportConfirmation:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Update report status with proper timestamp tracking (for web dashboard)
+export const updateReportStatusWithTimestamp = async (
+  reportId,
+  newStatus,
+  remarks = null
+) => {
+  try {
+    console.log(
+      "Updating report status with timestamp for reportId:",
+      reportId,
+      "New status:",
+      newStatus
+    );
+
+    // Determine which timestamp field to update based on status
+    const updateFields = {
+      status: newStatus,
+    };
+
+    // Add the appropriate timestamp field based on status
+    const now = new Date().toISOString();
+
+    switch (newStatus) {
+      case "Processing":
+        updateFields.processing_updated_at = now;
+        break;
+      case "Pending Confirmation":
+        updateFields.pending_confirmation_updated_at = now;
+        if (remarks) {
+          updateFields.remarks = remarks;
+        }
+        break;
+      case "Resolved":
+        updateFields.resolved_updated_at = now;
+        break;
+    }
+
+    const { data, error } = await supabase
+      .from("reports")
+      .update(updateFields)
+      .eq("report_id", reportId)
+      .select("*");
+
+    if (error) {
+      console.error("Error updating report status:", error);
+      return { success: false, error: error.message };
+    }
+
+    if (!data || data.length === 0) {
+      console.error("No rows updated - report not found");
+      return { success: false, error: "Report not found" };
+    }
+
+    console.log("Report status updated successfully with timestamp:", data[0]);
+    return { success: true, report: data[0] };
+  } catch (error) {
+    console.error("Error in updateReportStatusWithTimestamp:", error);
     return { success: false, error: error.message };
   }
 };

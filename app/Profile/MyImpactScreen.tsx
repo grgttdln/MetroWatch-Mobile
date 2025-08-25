@@ -105,7 +105,7 @@ export default function MyImpactScreen() {
               displayName: currentProfile?.name || "You",
               isCurrentUser: true,
               userVote: null,
-              status: report.status || "Open",
+              status: report.status || "Under Review",
               users: {
                 name: currentProfile?.name || "You",
                 email: currentUser.email || "",
@@ -152,6 +152,14 @@ export default function MyImpactScreen() {
   const handleDownvote = async (reportId: number) => {
     // Users can't vote on their own reports, but we'll keep this for consistency
     console.log("Cannot vote on your own report");
+  };
+
+  // Handle report press - navigate to report details
+  const handleReportPress = (reportId: number) => {
+    router.push({
+      pathname: "/Reports/ReportDetailsScreen",
+      params: { reportId: reportId.toString() },
+    });
   };
 
   // Refresh function
@@ -296,6 +304,7 @@ export default function MyImpactScreen() {
                 item={item}
                 onUpvote={handleUpvote}
                 onDownvote={handleDownvote}
+                onPress={() => handleReportPress(item.report_id)}
                 showVoting={true}
                 readOnly={true} // Show vote counts but disable voting for user's own reports
               />

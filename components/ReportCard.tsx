@@ -29,6 +29,7 @@ interface ReportCardProps {
   item: Report;
   onUpvote?: (reportId: number) => void;
   onDownvote?: (reportId: number) => void;
+  onPress?: () => void; // Option to make card clickable
   showVoting?: boolean; // Option to show/hide voting buttons
   readOnly?: boolean; // Option to show vote counts but disable voting
 }
@@ -44,11 +45,12 @@ export default function ReportCard({
   item,
   onUpvote,
   onDownvote,
+  onPress,
   showVoting = true,
   readOnly = false,
 }: ReportCardProps) {
-  return (
-    <View style={styles.reportCard}>
+  const CardContent = () => (
+    <>
       <View style={styles.reportHeader}>
         <View style={styles.reportInfo}>
           <Text style={styles.reportTitle}>{item.category}</Text>
@@ -219,6 +221,20 @@ export default function ReportCard({
           </View>
         </View>
       )}
+    </>
+  );
+
+  return onPress ? (
+    <TouchableOpacity
+      onPress={onPress}
+      style={styles.reportCard}
+      activeOpacity={0.7}
+    >
+      <CardContent />
+    </TouchableOpacity>
+  ) : (
+    <View style={styles.reportCard}>
+      <CardContent />
     </View>
   );
 }
