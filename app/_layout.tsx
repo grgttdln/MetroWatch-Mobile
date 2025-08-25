@@ -45,6 +45,13 @@ export default function RootLayout() {
         }}
       />
       <Stack.Screen
+        name="Reports/LocationConfirmationScreen"
+        options={{
+          headerShown: false,
+          animation: "fade",
+        }}
+      />
+      <Stack.Screen
         name="Reports/ReportUploadScreen"
         options={{
           headerShown: false,

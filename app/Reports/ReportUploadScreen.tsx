@@ -5,7 +5,6 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import * as ImagePicker from "expo-image-picker";
-import * as Location from "expo-location";
 import { router, useLocalSearchParams } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
@@ -15,12 +14,15 @@ import {
   Image,
   Platform,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import Header from "../../components/Header";
+import { createReport, uploadImage } from "../../services/supabase";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -28,8 +30,12 @@ interface SelectedImage {
   uri: string;
   name: string;
   type: string;
-  latitude?: number;
-  longitude?: number;
+}
+
+interface LocationData {
+  latitude: number;
+  longitude: number;
+  address: string;
 }
 
 const styles = StyleSheet.create({
@@ -91,6 +97,10 @@ const styles = StyleSheet.create({
     height: 200,
     marginBottom: 16,
   },
+  uploadAreaWithFewImages: {
+    height: 300,
+    marginBottom: 18,
+  },
   uploadAreaEmpty: {
     height: 400,
     marginBottom: 20,
@@ -116,20 +126,20 @@ const styles = StyleSheet.create({
   },
   browseText: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 20,
+    fontSize: 16,
     color: "#000000",
-    marginBottom: 10,
+    marginBottom: 8,
     textDecorationLine: "underline",
   },
   supportedText: {
     fontFamily: "Inter_400Regular",
-    fontSize: 16,
+    fontSize: 13,
     color: "#333333",
-    marginBottom: 5,
+    marginBottom: 4,
   },
   limitText: {
     fontFamily: "Inter_400Regular",
-    fontSize: 16,
+    fontSize: 13,
     color: "#333333",
   },
   selectedFileContainer: {
@@ -191,17 +201,109 @@ const styles = StyleSheet.create({
   continueButtonTextDisabled: {
     color: "#888888",
   },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 100,
+  },
+  formSection: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 18,
+    color: "#333333",
+    marginBottom: 12,
+  },
+  descriptionContainer: {
+    marginBottom: 20,
+  },
+  descriptionLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 16,
+    color: "#333333",
+    marginBottom: 8,
+  },
+  descriptionInput: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: "#CCCCCC",
+    borderRadius: 8,
+    padding: 14,
+    color: "#333333",
+    textAlignVertical: "top",
+    height: 120,
+    backgroundColor: "#FFFFFF",
+  },
+  locationSummary: {
+    backgroundColor: "#F8F9FF",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  locationSummaryText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: "#1A237E",
+    textAlign: "center",
+  },
+  categorySummary: {
+    backgroundColor: "#F0F8F0",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#C8E6C9",
+  },
+  categorySummaryText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: "#2E7D32",
+    textAlign: "center",
+  },
+  submitButton: {
+    backgroundColor: "#1A237E",
+    borderRadius: 8,
+    height: 56,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: "auto",
+    marginBottom: 20,
+  },
+  submitButtonDisabled: {
+    backgroundColor: "#CCCCCC",
+    opacity: 0.6,
+  },
+  submitButtonText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 18,
+    color: "#FFFFFF",
+  },
+  submitButtonTextDisabled: {
+    color: "#888888",
+  },
 });
 
 export default function ReportUploadScreen() {
   const params = useLocalSearchParams();
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
-  const [currentLocation, setCurrentLocation] =
-    useState<Location.LocationObject | null>(null);
+  const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Get the selected category from params
+  // Get data from params (from LocationConfirmationScreen)
   const selectedCategory = params.selectedCategory as string;
   const categoryName = params.categoryName as string;
+  const latitude = parseFloat(params.latitude as string);
+  const longitude = parseFloat(params.longitude as string);
+  const locationAddress = params.locationAddress as string;
+
+  const locationData: LocationData = {
+    latitude,
+    longitude,
+    address: locationAddress,
+  };
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -211,46 +313,9 @@ export default function ReportUploadScreen() {
 
   useEffect(() => {
     if (fontsLoaded) {
-      // Hide splash once fonts are ready so alerts/action sheets can appear on iOS
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [fontsLoaded]);
-
-  useEffect(() => {
-    // Request location permission on component mount
-    requestLocationPermission();
-  }, []);
-
-  const requestLocationPermission = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        const location = await Location.getCurrentPositionAsync({});
-        setCurrentLocation(location);
-      } else {
-        Alert.alert(
-          "Location Permission",
-          "Location permission is required to capture GPS coordinates with photos."
-        );
-      }
-    } catch (error) {
-      console.error("Error requesting location permission:", error);
-    }
-  };
-
-  const getCurrentLocation = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        const location = await Location.getCurrentPositionAsync({});
-        return location;
-      }
-      return null;
-    } catch (error) {
-      console.error("Error getting current location:", error);
-      return null;
-    }
-  };
 
   if (!fontsLoaded) {
     return null;
@@ -291,7 +356,6 @@ export default function ReportUploadScreen() {
 
     if (!result.canceled) {
       const newImages = result.assets.map((asset) => {
-        // Extract file name from uri
         const uriParts = asset.uri.split("/");
         const name = uriParts[uriParts.length - 1];
 
@@ -330,9 +394,6 @@ export default function ReportUploadScreen() {
       return;
     }
 
-    // Get current location
-    const location = await getCurrentLocation();
-
     const result = await ImagePicker.launchCameraAsync({
       aspect: [4, 3],
       quality: 0.8,
@@ -353,8 +414,6 @@ export default function ReportUploadScreen() {
         uri: asset.uri,
         name,
         type: `image/${ext}`,
-        latitude: location?.coords.latitude,
-        longitude: location?.coords.longitude,
       } as SelectedImage;
       setSelectedImages([...selectedImages, image].slice(0, 3));
     }
@@ -388,99 +447,278 @@ export default function ReportUploadScreen() {
     setSelectedImages(updatedImages);
   };
 
+  const handleSubmitReport = async () => {
+    console.log("🚀 Starting report submission...");
+
+    // Validate required fields
+    if (!description.trim()) {
+      Alert.alert("Error", "Please enter a description for your report");
+      return;
+    }
+
+    if (!selectedImages || selectedImages.length === 0) {
+      Alert.alert("Error", "At least one image is required to create a report");
+      return;
+    }
+
+    console.log("✅ Form validation passed");
+
+    setIsSubmitting(true);
+
+    try {
+      console.log("📷 Starting image upload process...");
+      console.log("🖼️ Number of images to upload:", selectedImages.length);
+
+      // Upload images first
+      const imageUrls = [];
+      for (let i = 0; i < selectedImages.length; i++) {
+        const image = selectedImages[i];
+        console.log(
+          `📸 Uploading image ${i + 1}/${selectedImages.length}:`,
+          image.name
+        );
+
+        const uploadResult = await uploadImage(image.uri, image.name);
+        if (uploadResult.success) {
+          console.log(
+            `✅ Image ${i + 1} uploaded successfully:`,
+            uploadResult.url
+          );
+          imageUrls.push(uploadResult.url);
+        } else {
+          console.error(
+            `❌ Failed to upload image ${i + 1}:`,
+            uploadResult.error
+          );
+          Alert.alert("Error", `Failed to upload image: ${uploadResult.error}`);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      console.log("📷 All images uploaded successfully!");
+
+      // Create report data with automatic date/time and location from previous screen
+      const now = new Date();
+      const reportData = {
+        date: now.toISOString().split("T")[0], // Current date
+        time: now.toTimeString().split(" ")[0], // Current time
+        location: locationData.address,
+        category: categoryName,
+        description: description.trim(),
+        url: imageUrls.join(","),
+        latitude: locationData.latitude.toString(),
+        longitude: locationData.longitude.toString(),
+        upvote: 0,
+        downvote: 0,
+        severity: "Low",
+      };
+
+      console.log(
+        "📋 Final report data to submit:",
+        JSON.stringify(reportData, null, 2)
+      );
+
+      console.log("💾 Submitting report to database...");
+      const result = await createReport(reportData);
+
+      if (result.success) {
+        console.log("🎉 Report submission successful!");
+
+        // Reset form data
+        setSelectedImages([]);
+        setDescription("");
+
+        Alert.alert("Success", "Report submitted successfully!", [
+          {
+            text: "OK",
+            onPress: () => {
+              router.push("/Dashboard/SocialLayerScreen");
+            },
+          },
+        ]);
+      } else {
+        console.error("❌ Report submission failed:", result.error);
+        Alert.alert("Error", `Failed to submit report: ${result.error}`);
+      }
+    } catch (error) {
+      console.error("💥 Unexpected error in handleSubmitReport:", error);
+      Alert.alert(
+        "Error",
+        `An error occurred: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    } finally {
+      console.log("🔄 Resetting submission state...");
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Header />
       <View style={styles.titleContainer}>
         <View style={styles.leftSection}>
           <TouchableOpacity
-            onPress={() => router.push("/Reports/ReportCategoryScreen")}
+            onPress={() =>
+              router.push({
+                pathname: "/Reports/LocationConfirmationScreen",
+                params: {
+                  selectedCategory: selectedCategory,
+                  categoryName: categoryName,
+                },
+              })
+            }
             style={styles.backButton}
           >
             <Text style={styles.backButtonText}>←</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.titleWrapper}>
-          <Text style={styles.title}>What's your concern?</Text>
+          <Text style={styles.title}>Create Report</Text>
         </View>
         <View style={styles.rightSection} />
       </View>
 
-      <View style={styles.content}>
-        <TouchableOpacity
-          style={[
-            styles.uploadArea,
-            selectedImages.length > 0
-              ? styles.uploadAreaWithImages
-              : styles.uploadAreaEmpty,
-          ]}
-          onPress={pickImageSource}
-        >
-          <View style={styles.uploadIconContainer}>
-            <View style={styles.cloudIconContainer}>
-              <Text style={styles.cloudIcon}>☁️</Text>
-              <Text style={styles.arrowIcon}>↑</Text>
-            </View>
-          </View>
-          <Text style={styles.browseText}>Browse Files</Text>
-          <Text style={styles.supportedText}>Supported Formats: JPEG, PNG</Text>
-          <Text style={styles.limitText}>
-            Upload Limit: 3 image files only.
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={true}
+      >
+        {/* Location Summary */}
+        <View style={styles.locationSummary}>
+          <Text style={styles.locationSummaryText}>
+            📍 {locationData.address}
           </Text>
-        </TouchableOpacity>
+        </View>
 
-        {selectedImages.map((image, index) => (
-          <View key={index} style={styles.selectedFileContainer}>
-            <View style={styles.selectedFileInfoContainer}>
-              <Image source={{ uri: image.uri }} style={styles.thumbnail} />
-              <View style={styles.fileNameWrapper}>
-                <Text
-                  style={styles.fileName}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {image.name}
-                </Text>
+        {/* Category Summary */}
+        <View style={styles.categorySummary}>
+          <Text style={styles.categorySummaryText}>
+            🏷️ Category: {categoryName}
+          </Text>
+        </View>
+
+        {/* Photo Upload Section */}
+        <View style={styles.formSection}>
+          <Text style={styles.sectionTitle}>Upload Photos</Text>
+
+          <TouchableOpacity
+            style={[
+              styles.uploadArea,
+              selectedImages.length === 0
+                ? styles.uploadAreaEmpty
+                : selectedImages.length >= 2
+                ? styles.uploadAreaWithImages
+                : styles.uploadAreaWithFewImages,
+              selectedImages.length >= 3 && { opacity: 0.5 },
+            ]}
+            onPress={selectedImages.length >= 3 ? undefined : pickImageSource}
+            disabled={selectedImages.length >= 3}
+          >
+            <View style={styles.uploadIconContainer}>
+              <View style={styles.cloudIconContainer}>
+                {selectedImages.length >= 3 ? (
+                  <Text style={styles.cloudIcon}>✅</Text>
+                ) : (
+                  <>
+                    <Text style={styles.cloudIcon}>☁️</Text>
+                    <Text style={styles.arrowIcon}>↑</Text>
+                  </>
+                )}
               </View>
             </View>
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => removeImage(index)}
-            >
-              <Text style={styles.deleteIcon}>✕</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
+            <Text style={styles.browseText}>
+              {selectedImages.length === 0
+                ? "Browse Files"
+                : selectedImages.length >= 3
+                ? "Upload Complete"
+                : "Add More Photos"}
+            </Text>
+            <Text style={styles.supportedText}>
+              Supported Formats: JPEG, PNG
+            </Text>
+            <Text style={styles.limitText}>
+              {selectedImages.length === 0
+                ? "Upload Limit: 3 image files only."
+                : selectedImages.length >= 3
+                ? "Maximum 3 images uploaded ✓"
+                : `${3 - selectedImages.length} slot${
+                    3 - selectedImages.length > 1 ? "s" : ""
+                  } remaining`}
+            </Text>
+          </TouchableOpacity>
 
+          {selectedImages.map((image, index) => (
+            <View key={index} style={styles.selectedFileContainer}>
+              <View style={styles.selectedFileInfoContainer}>
+                <Image source={{ uri: image.uri }} style={styles.thumbnail} />
+                <View style={styles.fileNameWrapper}>
+                  <Text
+                    style={styles.fileName}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {image.name}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => removeImage(index)}
+              >
+                <Text style={styles.deleteIcon}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+
+        {/* Description Section */}
+        <View style={styles.descriptionContainer}>
+          <Text style={styles.descriptionLabel}>Description</Text>
+          <TextInput
+            style={styles.descriptionInput}
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+            placeholder="Describe the issue you're reporting. Include details like when it happened, what you observed, and any other relevant information..."
+            placeholderTextColor="#AAAAAA"
+            returnKeyType="done"
+            blurOnSubmit={true}
+          />
+        </View>
+
+        {/* Submit Button */}
         <TouchableOpacity
           style={[
-            styles.continueButton,
-            selectedImages.length === 0 && styles.continueButtonDisabled,
+            styles.submitButton,
+            (selectedImages.length === 0 ||
+              !description.trim() ||
+              isSubmitting) &&
+              styles.submitButtonDisabled,
           ]}
-          onPress={() => {
-            if (selectedImages.length > 0) {
-              router.push({
-                pathname: "/Reports/ReportDetailsScreen",
-                params: {
-                  images: JSON.stringify(selectedImages),
-                  selectedCategory: selectedCategory,
-                  categoryName: categoryName,
-                },
-              });
-            }
-          }}
-          disabled={selectedImages.length === 0}
+          onPress={handleSubmitReport}
+          disabled={
+            selectedImages.length === 0 || !description.trim() || isSubmitting
+          }
         >
           <Text
             style={[
-              styles.continueButtonText,
-              selectedImages.length === 0 && styles.continueButtonTextDisabled,
+              styles.submitButtonText,
+              (selectedImages.length === 0 ||
+                !description.trim() ||
+                isSubmitting) &&
+                styles.submitButtonTextDisabled,
             ]}
           >
-            Continue
+            {isSubmitting ? "Submitting..." : "Submit Report"}
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

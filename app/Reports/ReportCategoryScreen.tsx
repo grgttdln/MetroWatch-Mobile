@@ -193,7 +193,7 @@ export default function ReportCategoryScreen() {
     if (selectedCategory) {
       const category = categories.find((cat) => cat.id === selectedCategory);
       router.push({
-        pathname: "/Reports/ReportUploadScreen",
+        pathname: "/Reports/LocationConfirmationScreen",
         params: {
           selectedCategory: selectedCategory,
           categoryName: category?.name || "",
