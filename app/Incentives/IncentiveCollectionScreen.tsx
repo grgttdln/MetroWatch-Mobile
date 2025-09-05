@@ -13,7 +13,11 @@ import {
 } from "react-native";
 import Header from "../../components/Header";
 import IncentiveItem from "../../components/IncentiveItem";
-import { getCurrentProfile, updateUserPoints } from "../../services/supabase";
+import {
+  getCurrentProfile,
+  getIncentives,
+  updateUserPoints,
+} from "../../services/supabase";
 
 interface Profile {
   id: string;
@@ -26,57 +30,53 @@ interface Profile {
 }
 
 interface Incentive {
-  id: string;
-  title: string;
-  pointsRequired: number;
-  image?: any;
+  incentive_id: string;
+  item: string;
+  points: number;
+  business: string;
+  url?: string;
 }
 
 export default function IncentiveCollectionScreen() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [incentives, setIncentives] = useState<Incentive[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const incentives: Incentive[] = [
-    {
-      id: "1",
-      title: "1 year supply of Rice",
-      pointsRequired: 34,
-      image: require("../../assets/images/incentives/rice.jpg"),
-    },
-    {
-      id: "2",
-      title: "1-pc Chickenjoy",
-      pointsRequired: 75,
-      image: require("../../assets/images/incentives/chickenjoy.jpg"),
-    },
-    {
-      id: "3",
-      title: "Free Coffee for a Month",
-      pointsRequired: 50,
-    },
-  ];
-
-  const fetchUserData = async () => {
+  const fetchData = async () => {
     try {
-      const currentProfile = await getCurrentProfile();
-      console.log("Current profile:", currentProfile);
+      // Fetch user profile and incentives in parallel
+      const [profileResult, incentivesResult] = await Promise.all([
+        getCurrentProfile(),
+        getIncentives(),
+      ]);
 
-      if (currentProfile) {
-        console.log("Profile data:", currentProfile);
-        setProfile(currentProfile);
+      console.log("Current profile:", profileResult);
+      console.log("Incentives result:", incentivesResult);
+
+      if (profileResult) {
+        console.log("Profile data:", profileResult);
+        setProfile(profileResult);
       } else {
         console.log("No current profile found");
       }
+
+      if (incentivesResult.success && incentivesResult.incentives) {
+        console.log("Incentives data:", incentivesResult.incentives);
+        setIncentives(incentivesResult.incentives);
+      } else {
+        console.error("Error fetching incentives:", incentivesResult.error);
+        setIncentives([]); // Set empty array as fallback
+      }
     } catch (error) {
-      console.error("Error in fetchUserData:", error);
+      console.error("Error in fetchData:", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchUserData();
+    fetchData();
   }, []);
 
   const handleBackPress = () => {
@@ -86,10 +86,10 @@ export default function IncentiveCollectionScreen() {
   const handleRedeem = async (incentive: Incentive) => {
     if (!profile) return;
 
-    if (profile.points >= incentive.pointsRequired) {
+    if (profile.points >= incentive.points) {
       Alert.alert(
         "Redeem Incentive",
-        `Are you sure you want to redeem ${incentive.title} for ${incentive.pointsRequired} points?`,
+        `Are you sure you want to redeem ${incentive.item} for ${incentive.points} points?`,
         [
           {
             text: "Cancel",
@@ -105,9 +105,9 @@ export default function IncentiveCollectionScreen() {
                   "Current points:",
                   profile.points,
                   "Required:",
-                  incentive.pointsRequired
+                  incentive.points
                 );
-                const newPoints = profile.points - incentive.pointsRequired;
+                const newPoints = profile.points - incentive.points;
                 console.log("Calculated new points:", newPoints);
 
                 const result = await updateUserPoints(profile.id, newPoints);
@@ -121,8 +121,8 @@ export default function IncentiveCollectionScreen() {
                   router.push({
                     pathname: "/Incentives/IncentiveClaimScreen",
                     params: {
-                      incentiveName: incentive.title,
-                      incentivePoints: incentive.pointsRequired.toString(),
+                      incentiveName: incentive.item,
+                      incentivePoints: incentive.points.toString(),
                     },
                   });
                 } else {
@@ -158,7 +158,7 @@ export default function IncentiveCollectionScreen() {
       Alert.alert(
         "Insufficient Points",
         `You need ${
-          incentive.pointsRequired - profile.points
+          incentive.points - profile.points
         } more points to redeem this incentive.`
       );
     }
@@ -199,14 +199,21 @@ export default function IncentiveCollectionScreen() {
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#1E3A8A" />
               </View>
+            ) : incentives.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  No incentives available at the moment
+                </Text>
+              </View>
             ) : (
               incentives.map((incentive) => (
                 <IncentiveItem
-                  key={incentive.id}
-                  title={incentive.title}
-                  pointsRequired={incentive.pointsRequired}
+                  key={incentive.incentive_id}
+                  title={incentive.item}
+                  business={incentive.business}
+                  pointsRequired={incentive.points}
                   userPoints={profile?.points || 0}
-                  image={incentive.image}
+                  image={incentive.url ? { uri: incentive.url } : null}
                   onRedeem={() => handleRedeem(incentive)}
                 />
               ))
@@ -285,6 +292,17 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 18,
+    color: "#666666",
+    textAlign: "center",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 16,
     color: "#666666",
     textAlign: "center",
   },

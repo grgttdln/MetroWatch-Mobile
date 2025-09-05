@@ -124,6 +124,17 @@ export default function SocialLayerScreen() {
     />
   );
 
+  const renderEmptyState = () => (
+    <View style={styles.emptyStateContainer}>
+      <Text style={styles.emptyStateIcon}>📱</Text>
+      <Text style={styles.emptyStateTitle}>No Reports Yet</Text>
+      <Text style={styles.emptyStateMessage}>
+        Be the first to share a community report!{"\n"}
+        Help make your neighborhood safer by reporting issues.
+      </Text>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
@@ -141,6 +152,7 @@ export default function SocialLayerScreen() {
             }
             contentContainerStyle={styles.listContainer}
             showsVerticalScrollIndicator={false}
+            ListEmptyComponent={!loading ? renderEmptyState : null}
           />
         </View>
 
@@ -169,5 +181,30 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingBottom: 100,
+    flexGrow: 1,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+    paddingTop: 40,
+  },
+  emptyStateIcon: {
+    fontSize: 64,
+    marginBottom: 20,
+  },
+  emptyStateTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1A237E",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  emptyStateMessage: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 24,
   },
 });

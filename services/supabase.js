@@ -650,6 +650,7 @@ export const getCommunityReports = async () => {
         )
       `
       )
+      .neq("status", "Resolved") // Exclude resolved reports from community feed
       .order("date", { ascending: false })
       .order("time", { ascending: false });
 
@@ -673,6 +674,7 @@ export const getCommunityReports = async () => {
           )
         `
         )
+        .neq("status", "Resolved") // Exclude resolved reports from community feed
         .order("date", { ascending: false })
         .order("time", { ascending: false });
 
@@ -1248,6 +1250,33 @@ export const updateReportStatusWithTimestamp = async (
     return { success: true, report: data[0] };
   } catch (error) {
     console.error("Error in updateReportStatusWithTimestamp:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get all incentives from the database
+export const getIncentives = async () => {
+  try {
+    console.log("Fetching incentives from database...");
+
+    const { data, error } = await supabase
+      .from("incentives")
+      .select("*")
+      .order("points", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching incentives:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(
+      "Incentives fetched successfully:",
+      data?.length || 0,
+      "incentives"
+    );
+    return { success: true, incentives: data || [] };
+  } catch (error) {
+    console.error("Error in getIncentives:", error);
     return { success: false, error: error.message };
   }
 };

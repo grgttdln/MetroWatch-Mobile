@@ -3,6 +3,7 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface IncentiveItemProps {
   title: string;
+  business: string;
   pointsRequired: number;
   userPoints: number;
   image?: any; // Changed to any to handle both require() and string URLs
@@ -11,6 +12,7 @@ interface IncentiveItemProps {
 
 export default function IncentiveItem({
   title,
+  business,
   pointsRequired,
   userPoints,
   image,
@@ -34,6 +36,9 @@ export default function IncentiveItem({
 
       {/* Title */}
       <Text style={styles.title}>{title}</Text>
+
+      {/* Business */}
+      <Text style={styles.business}>From {business}</Text>
 
       {/* Points and Redeem Button Container */}
       <View style={styles.bottomContainer}>
@@ -99,6 +104,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#000000",
+    marginBottom: 8,
+  },
+  business: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#002697",
     marginBottom: 12,
   },
   bottomContainer: {
